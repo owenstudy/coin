@@ -27,8 +27,13 @@ class Client():
         coin,curr=pair.split('_')
         order=self.btc38clt.submitOrder(transtype,curr,rate,round(amount,2),coin)
         order2=order[0].decode('utf8').split('|')
-        orderstatus=order2[0]
-        orderid=order2[1]
+        #避免直接成交没有 返回订单的情况
+        orderstatus = order2[0]
+        if len(order2)>5:
+            orderid=order2[1]
+        else:
+            #虚拟一个订单号
+            orderid=111
         neworder={'order_id':orderid,'status':orderstatus}
         #转换成对象以方便 统一访问
         neworder2=urlaccess.JSONObject(neworder)
@@ -44,34 +49,38 @@ class Client():
         #print(bal)
         pass
         return coinbal
-    #取消定单
-    def cancelOrder(self,orderid):
+    #取消定单,btc38传送时需要 放一个coin code否则为报错
+    def cancelOrder(self,orderid,coin_code):
         cancel=self.btc38clt.cancelOrder('cny',orderid)
         return cancel
     #取得订单状态
-    def getOrderStatus(self,orderid):
+    def getOrderStatus(self,orderid,coin_code=None):
         #TODO, need test
-        orderstatus=self.btc38clt.getOrderList()
+        orderstatus=self.btc38clt.getOrderList(coin_code)
         #orderstatus=b'[{"order_id":"123", "order_type":"1", "order_coinname":"BTC", "order_amount":"23.232323", "order_price":"0.2929"}, {"order_id":"123", "order_type":"1", "order_coinname":"LTC","order_amount":"23.232323", "order_price":"0.2929"}]'
-        orderstatus2=orderstatus.decode('utf8')
-        orderstatusobj=ast.literal_eval(orderstatus2)
+        #orderstatus2=orderstatus.decode('utf8')
+        #orderstatusobj=ast.literal_eval(orderstatus)
         #TODO 需要找出指定订单的状态
         orderresult=None
-        for order in orderstatusobj:
+        for order in orderstatus:
 
             #查找到有订单则说明没有 成交，是open状态，其它为closed，cancel也认为是closed
-            if int(order['order_id'])==orderid:
+            if int(order.get('id'))==int(orderid):
                 orderresult={'order_id':orderid,'order_status':'open'}
                 break
         if not orderresult:
             orderresult = {'order_id': orderid, 'order_status': 'closed'}
         orderresultobj=urlaccess.JSONObject(orderresult)
-        return orderresultobj
+        return orderresultobj.order_status
 
 if __name__=='__main__':
     client = Client()
-    clt = client.getOrderStatus(123)
-    print(clt.order_status)
+    #submit=client.submitOrder('doge_cny','sell',0.03,100)
+    #print(submit.order_id)
+    clt = client.getOrderStatus(367892140)
+    print(clt)
+
+
 
 """
     btc38clt=Client()

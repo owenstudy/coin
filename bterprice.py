@@ -77,11 +77,11 @@ if __name__=='__main__':
     print(secret)
     #print('ltc diff: %d'%findcoindiff('ltc'))
 
-    """
+    #"""
     coincode='btc'
     coinprice = CoinPrice(coincode)
     if coincode=='btc':
         print('CNY:%f' % (coinprice.sell_cny))
     else:
         print('CNY:%f,BTC:%f'%(coinprice.sell_cny,coinprice.sell_btc))
-    """
+    #"""

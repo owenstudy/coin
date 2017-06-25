@@ -14,7 +14,6 @@ class Client:
     def submitOrder(self,pair, trade_type, rate, amount, connection=None, update_delay=None, error_handler=None):
         #下订单
         neworder=self.tradeapi.placeOrder(pair,trade_type,rate,amount)
-        print(neworder)
         return neworder
     #得到某个COIN或者全部的余额信息
     #pair e.g. doge_cny
@@ -29,8 +28,14 @@ class Client:
         return coinbal
 
     #得到某个order的状态
-    def getOrderStatus(self,orderid):
-        return self.tradeapi.getOrderStatus(orderid)
+    def getOrderStatus(self,orderid,coin_code=None):
+        try:
+            orderstatus=self.tradeapi.getOrderStatus(orderid)
+            return orderstatus.status
+        except:
+            #出现订单已经 成交查询不到状态的时候默认为closed
+            return 'closed'
+            pass
     #取消定单
     def cancelOrder(self,orderid):
         return self.tradeapi.cancelOrder(orderid)
@@ -39,5 +44,8 @@ if __name__=='__main__':
     bterclient=Client()
     #获取帐户余额
     bal=bterclient.getMyBalance('cny')
+
+    submitorder=bterclient.submitOrder('doge_cny','sell',0.03,100)
+    print(submitorder.order_id)
     #print(bal)
 

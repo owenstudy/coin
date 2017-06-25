@@ -4,20 +4,30 @@
 '''价格获取'''
 __author__='Owen_Study/owen_study@126.com'
 
+import time
 import urlaccess
 
-'''价格管理类'''
+'''价格管理类，根据传入的市场名称和coin获取对应的价格信息'''
 class PriceManage(object):
     #传入市场名称和coin则获取对应的价格信息
     def __init__(self,market,coincode):
         self.__market=market
         self.__coincode=coincode
-    '''返回价格明细'''
+    '''返回价格明细，返回价格的对象实例'''
     def get_coin_price(self):
+        time.sleep(1)
+        if self.__market=='bter':
+            self.__set_bter_price()
+            return self.coin_price
+        elif self.__market=='btc38':
+            self.__set_btc38_price()
+            return self.coin_price
+        else:
+            raise Exception('Unknown market:%s' % self.__market)
         pass
 
     '''返回bter市场的价格'''
-    def __get_bter_price(self):
+    def __set_bter_price(self):
         base_url = 'http://data.bter.com/api/1/ticker/'
         url_cny = base_url + self.__coincode + '_cny'
         url_btc = base_url + self.__coincode + '_btc'
@@ -28,9 +38,21 @@ class PriceManage(object):
         buy_cny = float(pricedata_cny.buy)
         last_cny = float(pricedata_cny.last)
         self.coin_price=CoinPrice(self.__coincode,buy_cny,sell_cny)
+
     '''返回btc38市场的价格'''
+    def __set_btc38_price(self):
+        base_url = 'http://api.btc38.com/v1/ticker.php?c='
+        url_cny = base_url + self.__coincode + '&mk_type=cny'
+        url_btc = base_url + self.__coincode + '&mk_type=btc'
+        # 获取价格的JSONObject数据
+        pricedata_cny = urlaccess.geturldata(url_cny)
+        # cny价格的信息
+        sell_cny = pricedata_cny.ticker.sell
+        buy_cny = pricedata_cny.ticker.buy
+        last_cny = pricedata_cny.ticker.last
+        self.coin_price=CoinPrice(self.__coincode,buy_cny,sell_cny)
 
-
+'''定义价格类，多个市场之间的价格统一到同一个格式'''
 class CoinPrice(object):
     '''定义初始化价格属性'''
     def __init__(self,coin_code,buy_cny,sell_cny,**kwargs):
@@ -44,12 +66,11 @@ class CoinPrice(object):
         #print('coin:%s,buy_cny:%f,sell_cny:%f' % (self.coin_code, self.buy_cny, self.sell_cny))
 
     def __str__(self):
-        print('coin:%s,buy_cny:%f,sell_cny:%f'%(self.coin_code,self.buy_cny,self.sell_cny))
-
+        return 'coin:%s,buy_cny:%f,sell_cny:%f'%(self.coin_code,self.buy_cny,self.sell_cny)
 #test
 if __name__=='__main__':
     pricemanage=PriceManage('bter','doge')
-    pricemanage.__get_bter_price()
-
+    coinprice=pricemanage.get_coin_price()
+    print(coinprice)
     coinprice=CoinPrice(coin_code='doge',buy_cny=222,sell_cny=3333,buy_btc=2323)
-    print('code:%s,buy_cny:%f,buy_btc%f'%(coinprice.coin_code,coinprice.buy_cny,coinprice.buy_btc))
+    print(coinprice)

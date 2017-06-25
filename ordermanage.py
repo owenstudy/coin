@@ -1,3 +1,5 @@
+
+import time
 import btc38.btc38client
 import bterapi.bterclient
 
@@ -24,12 +26,16 @@ class OrderManage:
     def cancelOrder(self,orderid):
         return self.clientapi.cancelOrder(orderid)
     #订单状态
-    def getOrderStatus(self,orderid):
-        return self.clientapi.getOrderStatus(orderid)
+    def getOrderStatus(self,orderid,coin_code=None):
+        #time.sleep(1)
+        return self.clientapi.getOrderStatus(orderid,coin_code)
 
 #test
 if __name__=='__main__':
-    bterorder=OrderManage('bter')
+    bterorder=OrderManage('btc38')
+    order=bterorder.submitOrder('doge_cny','sell',0.04,100)
+    orderstatus=bterorder.getOrderStatus(order.order_id,'doge')
+    print(orderstatus)
     bal=bterorder.getMyBalance('doge')
     print('BTER:%f'%bal)
 
