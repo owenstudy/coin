@@ -20,8 +20,6 @@ class TradeRobot(object):
         self.__std_profit_rate=std_profit_rate
         #每次投资的金额标准
         self.__std_amount=100
-        #Trans log
-        self.__translog=TransLog()
         pass
 
     '''开始检测交易'''
