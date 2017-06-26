@@ -25,7 +25,7 @@ class CoinPrice:
         self.buy_cny = float(pricedata_cny.buy)
         self.last_cny = float(pricedata_cny.last)
         self.avg_cny = float(pricedata_cny.avg)
-        time.sleep(1)
+        #time.sleep(1)
         if coincode != 'btc':
             # btc price
             pricedata_btc = urlaccess.geturldata(url_btc)

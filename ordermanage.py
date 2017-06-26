@@ -1,5 +1,5 @@
 
-import time
+import time,traceback
 import btc38.btc38client
 import bterapi.bterclient
 
@@ -21,13 +21,14 @@ class OrderManage:
     #得到某个COIN或者全部的余额信息
     #pair e.g. doge_cny
     def getMyBalance(self,coin=None):
+        time.sleep(0.1)
         return self.clientapi.getMyBalance(coin)
     #取消定单
     def cancelOrder(self,orderid):
         return self.clientapi.cancelOrder(orderid)
     #订单状态
     def getOrderStatus(self,orderid,coin_code=None):
-        #time.sleep(1)
+        time.sleep(0.1)
         return self.clientapi.getOrderStatus(orderid,coin_code)
 
 #test

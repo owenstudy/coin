@@ -6,6 +6,7 @@ __author__='Owen_Study/owen_study@126.com'
 
 import time
 import urlaccess
+import traceback
 
 '''价格管理类，根据传入的市场名称和coin获取对应的价格信息'''
 class PriceManage(object):
@@ -13,9 +14,10 @@ class PriceManage(object):
     def __init__(self,market,coincode):
         self.__market=market
         self.__coincode=coincode
+        self.coin_price=None
     '''返回价格明细，返回价格的对象实例'''
     def get_coin_price(self):
-        time.sleep(1)
+        #time.sleep(1)
         if self.__market=='bter':
             self.__set_bter_price()
             return self.coin_price
@@ -33,12 +35,20 @@ class PriceManage(object):
         url_btc = base_url + self.__coincode + '_btc'
         # 获取价格的JSONObject数据
         pricedata_cny = urlaccess.geturldata(url_cny)
-        # cny价格的信息
-        sell_cny = float(pricedata_cny.sell)
-        buy_cny = float(pricedata_cny.buy)
-        last_cny = float(pricedata_cny.last)
-        self.coin_price=CoinPrice(self.__coincode,buy_cny,sell_cny)
-
+        try:
+            if pricedata_cny.result=='true':
+                # cny价格的信息
+                sell_cny = float(pricedata_cny.sell)
+                buy_cny = float(pricedata_cny.buy)
+                last_cny = float(pricedata_cny.last)
+                self.coin_price=CoinPrice(self.__coincode,buy_cny,sell_cny)
+            else:
+                print('获取价格错误:%s'%pricedata_cny.message)
+        except Exception as e:
+            exstr = traceback.format_exc()
+            print(exstr)
+            print(pricedata_cny)
+            print(str(e))
     '''返回btc38市场的价格'''
     def __set_btc38_price(self):
         base_url = 'http://api.btc38.com/v1/ticker.php?c='
@@ -47,10 +57,14 @@ class PriceManage(object):
         # 获取价格的JSONObject数据
         pricedata_cny = urlaccess.geturldata(url_cny)
         # cny价格的信息
-        sell_cny = pricedata_cny.ticker.sell
-        buy_cny = pricedata_cny.ticker.buy
-        last_cny = pricedata_cny.ticker.last
-        self.coin_price=CoinPrice(self.__coincode,buy_cny,sell_cny)
+        try:
+            sell_cny = pricedata_cny.ticker.sell
+            buy_cny = pricedata_cny.ticker.buy
+            last_cny = pricedata_cny.ticker.last
+            self.coin_price=CoinPrice(self.__coincode,buy_cny,sell_cny)
+        except Exception as e:
+            print(pricedata_cny)
+            print(str(e))
 
 '''定义价格类，多个市场之间的价格统一到同一个格式'''
 class CoinPrice(object):

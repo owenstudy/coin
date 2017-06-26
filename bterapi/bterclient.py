@@ -22,7 +22,11 @@ class Client:
         #coin, curr = pair.split("_")
         #print(bal[coin]['available'])
         if coin:
-            coinbal=bal[coin]['available']
+            try:
+                coinbal=bal[coin]['available']
+            except:
+                coinbal=None
+
         else:
             coinbal=bal
         return coinbal

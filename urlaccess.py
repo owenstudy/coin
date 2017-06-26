@@ -41,8 +41,12 @@ def geturldata(url):
     str = json.dumps(price)
     #print(price)
     # 把json字符串转换成为python对象
-    pricedata = json.loads(price, object_hook=JSONObject)
-    return pricedata
+    try:
+        pricedata = json.loads(price, object_hook=JSONObject)
+        return pricedata
+    except:
+        print('error price:%s'%price)
+        return None
 
 
     #print(get_content(url))
