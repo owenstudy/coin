@@ -5,8 +5,23 @@ class KeyData(object):
     def __init__(self, secret):
         self.secret = secret
 
+class KeyHandler(object):
+    def __init__(self, filename=None):
+        """
+        The given file is assumed to be a text file with two lines (key, secret).
+        """
 
 class KeyHandler(object):
+    def __initX__(self, filename=None):
+        """
+        The given file is assumed to be a text file with two lines (key, secret).
+        """
+        self._keys = {}
+        #bter key/secret
+        key = '11433508-C612-43D4-BED2-DB28DDC7B883'
+        secret = '82ecfee19c20b9603dca5b87ccf5cdecd0a282676bc399d7e7646026fc6a0ee2'
+        self.addKey(key, secret)
+    #ready to remove, since it may raise error
     def __init__(self, filename=None):
         """
         The given file is assumed to be a text file with two lines (key, secret).

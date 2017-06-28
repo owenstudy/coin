@@ -24,8 +24,8 @@ class OrderManage:
         time.sleep(0.1)
         return self.clientapi.getMyBalance(coin)
     #取消定单
-    def cancelOrder(self,orderid):
-        return self.clientapi.cancelOrder(orderid)
+    def cancelOrder(self,orderid,coin_code=None):
+        return self.clientapi.cancelOrder(orderid,coin_code)
     #订单状态
     def getOrderStatus(self,orderid,coin_code=None):
         time.sleep(0.1)

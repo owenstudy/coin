@@ -21,13 +21,13 @@ class TradeRobot(object):
         #可以使用的列表
         #'xrp','ltc','doge','xpm','nxt','bts','ppc','dash'
         #可工作列表  'doge','xrp','ltc'
-        self.__coin_list=['xrp','ltc','doge','xpm','nxt','bts','ppc','dash']
+        self.__coin_list=['doge','ltc','ppc']
         #盈利操作的起点
         self.__std_profit_rate=std_profit_rate
         #coin在市场之间传送的费用，有的是免费的，有的是收费的,需要地看各个市场的情况进行初始化
-        self.__transfer_charge_rate={'ltc':0.01,'doge':0,'xpm':0,'ppc':0}
+        self.__transfer_charge_rate={'ltc':0.0,'doge':0,'xpm':0,'ppc':0}
         #每次投资的金额标准
-        self.__std_amount=100
+        self.__std_amount=10
         pass
 
     '''开始检测交易'''
@@ -65,9 +65,165 @@ class TradeRobot(object):
         pass
 
 
+    '''test twin_trans'''
+    def test_twin_trans(self):
+        # VS市场
+        #测试卖出操作
+        test_market = 'bter'
+        self.__order_vs = ordermanage.OrderManage(test_market)
+        status_bter=False
+        #status_bter = self.__twin_trans('sell', 'doge', 1000, 0.05)
+        print('test trans(SELL) exec result @%s:' % test_market)
+        if status_bter:
+            print('transaction done successfully!')
+        else:
+            print('transaction failed!')
+        test_market = 'btc38'
+        self.__order_vs = ordermanage.OrderManage(test_market)
+        status_btc38 = self.__twin_trans('sell', 'doge', 1000, 0.05)
+        print('test trans(SELL) exec result @%s:' % test_market)
+        if status_btc38:
+            print('transaction done successfully!')
+        else:
+            print('transaction failed!')
+
+        #测试买入操作
+        test_market='bter'
+        self.__order_base = ordermanage.OrderManage(test_market)
+        status_bter=self.__twin_trans('buy','doge',200,0.012)
+        print('test trans(BUY) exec result @%s:'%test_market)
+        if status_bter:
+            print('transaction done successfully!')
+        else:
+            print('transaction failed!')
+        test_market = 'btc38'
+        self.__order_base = ordermanage.OrderManage(test_market)
+        status_btc38=self.__twin_trans('buy','doge',200,0.012)
+        print('test trans(BUY) exec result @%s:'%test_market)
+        if status_btc38:
+            print('transaction done successfully!')
+        else:
+            print('transaction failed!')
+
+
+
+    '''twin trans, sell or buy in different market'''
+    """
+    @:parameter trans_type, sell, buy
+    @:parameter coin_code, trans coin code
+    @:parameter trans_price, trans price
+    """
+    def __twin_trans(self,trans_type,coin_code,trans_units,trans_price):
+
+        trans_succ_flag=False
+        #max waitting seconds
+        max_wait_seconds=5
+        #Check trans type, sell or buy
+        if trans_type=='buy':
+            order_market=self.__order_base
+        elif trans_type=='sell':
+            order_market=self.__order_vs
+        else:
+            trans_succ_flag= False
+            raise('Unknow trans_type:%s'%trans_type)
+
+        trans_order=order_market.submitOrder(coin_code+'_cny',trans_type,trans_price,trans_units)
+        order_id=trans_order.order_id
+        #让服务器运行一会
+        time.sleep(0.1)
+        order_status=order_market.getOrderStatus(order_id,coin_code)
+        if order_status=='closed':
+            trans_succ_flag=True
+        else:
+            #todo循环处理，直到成功
+            waitseconds = 0
+            while (waitseconds < max_wait_seconds):
+                #每1秒检查 一次
+                time.sleep(1)
+                order_status = order_market.getOrderStatus(order_id, coin_code)
+                if order_status == 'closed':
+                    waitseconds = max_wait_seconds+5  # 退出
+                    trans_succ_flag = True
+                else:  # 没有成效刚继续等待检查
+                    waitseconds = waitseconds + 1
+            # 超过时间后则取消该订单，任务取消
+            if waitseconds == max_wait_seconds:
+                # 取消原订单--For buy&sell
+                """
+                cancelorder=order_market.cancelOrder(order_id,coin_code)
+                if cancelorder=='success':
+                    if trans_type=='buy':
+                        trans_succ_flag=True
+                else:
+                    print('订单过期取消失败!')
+                
+                """
+                #先测试 只有买不成交时才取消，卖出不进行取消，直到等到交易结束
+                if trans_type=='buy':
+                    cancelorder = order_market.cancelOrder(order_id, coin_code)
+                    print('买入超时取消!')
+                else:
+                    cancelorder='fail'
+                    print('卖出超时，继续等......')
+
+                #
+                # For selling, keep sell until success since buy transaction has done
+                if trans_type=='sell' and cancelorder=='success':
+                    # 按市场当前价卖出
+                    newtrans = order_market.submitOrder(coin_code + '_cny', trans_type, trans_price*0.8,\
+                                                           trans_units)
+                    logging.info('江湖有危险，打8折去卖的，成交价就听天由命了，参考下面的明细！')
+                    neworder_id=newtrans.order_id
+                    #等几秒钟再来检查状态
+                    time.sleep(2)
+                    neworderstatus = order_market.getOrderStatus(neworder_id, coin_code)
+                    if neworderstatus=='closed':
+                        trans_succ_flag = True
+                    else:
+                        # 8折的报价还没有卖出，则提示，不取消订单，由人工干预处理
+                        logging.info('我努力了%f秒钟打8折都没有卖出去，说明市场在狂跌，买的:%s那%f份就存手里面等着以后发了再说，散了吧......'\
+                                     %(max_wait_seconds,coin_code,trans_units))
+        return trans_succ_flag
+
+    def test_trans_apply(self):
+        self.__market_base='bter'
+        self.__market_vs='btc38'
+        self.__trans_coin_code='doge'
+        price_base = pricemanage.PriceManage('bter', 'doge').get_coin_price()
+        # 需要对比的市场价格
+        price_vs = pricemanage.PriceManage('btc38', 'doge').get_coin_price()
+        self.__price_base = price_base
+        self.__price_vs = price_vs
+        self.__price_base.sell_cny=0.03
+        self.__price_vs.buy_cny=0.04
+
+        trans_success=self.__trans_apply()
+        if trans_success:
+            print('交易成功！')
+        else:
+            print('交易处理失败!')
+
+    #改进的交易函数处理
+    def __trans_apply(self):
+        trans_success=False
+        buy_cny=self.__price_base.sell_cny
+        sell_cny=self.__price_vs.buy_cny
+        trans_units=round(self.__std_amount/buy_cny,2)
+        self.__order_base = ordermanage.OrderManage(self.__market_base)
+        self.__order_vs = ordermanage.OrderManage(self.__market_vs)
+        # 调用买入操作
+        buy_success=self.__twin_trans('buy',self.__trans_coin_code,trans_units,buy_cny)
+        if buy_success:
+            sell_success=self.__twin_trans('sell',self.__trans_coin_code,trans_units,sell_cny)
+            if sell_success:
+                trans_success=True
+        return trans_success
+
+
+
     '''检测价格'''
     '''多市场同时交易,交易之前已经检查过余额'''
-    def __trans_apply(self):
+    def __trans_applyX(self):
         buy_cny=self.__price_base.sell_cny
         sell_cny=self.__price_vs.buy_cny
         trans_units=round(self.__std_amount/buy_cny,2)
@@ -198,7 +354,7 @@ class TradeRobot(object):
                         self.__order_vs = ordermanage.OrderManage(self.__market_vs)
 
                         # 预期盈利金额
-                        profitamt = (self.__std_amount / price_vs.buy_cny) * (price_vs.buy_cny - price_base.sell_cny)
+                        profitamt = (self.__std_amount / price_base.sell_cny) * (price_vs.buy_cny - price_base.sell_cny)
                         currtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
                         print('Date:%s,Coin:%s,BaseMarket(Buy):%s, VSmarket(Sell):%s,Buy price:%f,Sell price:%f,投资%f预期盈利:%f' \
                               % (currtime,coin, market_base, market_vs, price_base.sell_cny, price_vs.buy_cny, self.__std_amount,
@@ -221,6 +377,8 @@ class TradeRobot(object):
                     price_vs=pricemanage.PriceManage(market_vs,coin).get_coin_price()
 
                     price_check_result=self.__price_check(coin,price_base,price_vs)
+                    # TODO for testing
+                    #price_check_result=True
                     #如果价格可以进行买卖刚返回
                     if price_check_result :
                         #对于达到要求的保存到类变量中，交易函数进行处理
@@ -331,6 +489,8 @@ if __name__=='__main__':
     #price_base = pricemanage.PriceManage('bter', 'doge').get_coin_price()
     robot=TradeRobot()
     robot.start()
+    #robot.test_twin_trans()
+    #robot.price_analyze()
     #robot.start_rearch()
     #coinlist=['ltc','doge','xrp','bts','xlm','nxt','ardr','blk','xem','emc','dash','xzc','sys','vash','eac','xcn','ppc','mgc','hlb','zcc','xpm','ncs','ybc','anc','bost','mec','wdc','qrk','dgc','bec','ric','src','tag']
     #coinlist = ['ltc','xrm']

@@ -102,9 +102,9 @@ class Client():
         return  self.request("submitorder", params)
 
 
-    def cancelOrder(self,mk_type,order_id):
+    def cancelOrder(self,coincode,mk_type,order_id):
         timestamp, MD5 = self.getMD5()
-        params = {'key': self.access_key, 'time': timestamp, 'md5': MD5, 'mk_type': mk_type, 'order_id': order_id}
+        params = {'key': self.access_key, 'time': timestamp, 'md5': MD5,'coinname':coincode, 'mk_type': mk_type, 'order_id': order_id}
         return self.request("cancelorder", params)
 
     def getOrderList(self,coinname = None):

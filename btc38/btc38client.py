@@ -1,7 +1,7 @@
 
 import btc38.client
 import urlaccess
-import json
+import json,time
 import ast
 
 '''统一接口'''
@@ -26,14 +26,19 @@ class Client():
             transtype=1
         coin,curr=pair.split('_')
         order=self.btc38clt.submitOrder(transtype,curr,rate,round(amount,2),coin)
+        #return format b'[succ|123423]
         order2=order[0].decode('utf8').split('|')
         #避免直接成交没有 返回订单的情况
-        orderstatus = order2[0]
-        if len(order2)>5:
+        #orderstatus = order2[0]
+        if order2[0]=='succ':
+            orderstatus='success'
+        else:
+            orderstatus='fail'
+        if len(order2)>=2:
             orderid=order2[1]
         else:
             #虚拟一个订单号
-            orderid=111
+            orderid=-1111111
         neworder={'order_id':orderid,'status':orderstatus}
         #转换成对象以方便 统一访问
         neworder2=urlaccess.JSONObject(neworder)
@@ -50,28 +55,48 @@ class Client():
         pass
         return coinbal
     #取消定单,btc38传送时需要 放一个coin code否则为报错
-    def cancelOrder(self,orderid,coin_code):
-        cancel=self.btc38clt.cancelOrder('cny',orderid)
-        return cancel
+    def cancelOrder(self,orderid,coin_code=None):
+        try:
+            order_status=None
+            cancel=self.btc38clt.cancelOrder(coin_code,'cny',orderid)
+            cancelstatus=cancel[0].decode('utf8')
+            if cancelstatus=='succ':
+                order_status='success'
+            else:
+                order_status = 'fail'
+        except Exception as e:
+            print(str(e))
+            print('订单取消失败@btc38')
+            order_status='fail'
+        finally:
+            return order_status
+
     #取得订单状态
     def getOrderStatus(self,orderid,coin_code=None):
-        #TODO, need test
-        orderstatus=self.btc38clt.getOrderList(coin_code)
-        #orderstatus=b'[{"order_id":"123", "order_type":"1", "order_coinname":"BTC", "order_amount":"23.232323", "order_price":"0.2929"}, {"order_id":"123", "order_type":"1", "order_coinname":"LTC","order_amount":"23.232323", "order_price":"0.2929"}]'
-        #orderstatus2=orderstatus.decode('utf8')
-        #orderstatusobj=ast.literal_eval(orderstatus)
-        #TODO 需要找出指定订单的状态
-        orderresult=None
-        for order in orderstatus:
-
-            #查找到有订单则说明没有 成交，是open状态，其它为closed，cancel也认为是closed
-            if int(order.get('id'))==int(orderid):
-                orderresult={'order_id':orderid,'order_status':'open'}
-                break
-        if not orderresult:
-            orderresult = {'order_id': orderid, 'order_status': 'closed'}
-        orderresultobj=urlaccess.JSONObject(orderresult)
-        return orderresultobj.order_status
+        #
+        try:
+            time.sleep(1)
+            data=self.btc38clt.getOrderList(coin_code)
+            #orderstatus=b'[{"order_id":"123", "order_type":"1", "order_coinname":"BTC", "order_amount":"23.232323", "order_price":"0.2929"}, {"order_id":"123", "order_type":"1", "order_coinname":"LTC","order_amount":"23.232323", "order_price":"0.2929"}]'
+            #TODO 需要找出指定订单的状态
+            orderresult=None
+            order_status=None
+            for order in data:
+                #查找到有订单则说明没有 成交，是open状态，其它为closed，cancel也认为是closed
+                if int(order.get('id'))==int(orderid):
+                    orderresult={'order_id':orderid,'order_status':'open'}
+                    break
+            if not orderresult:
+                orderresult = {'order_id': orderid, 'order_status': 'closed'}
+            orderresultobj=urlaccess.JSONObject(orderresult)
+            order_status=orderresultobj.order_status
+        except Exception as e:
+            #如果订单状态返回出错，则返回一个默认值
+            print('获取订单状态出错')
+            print(str(e))
+            order_status='closed'
+        finally:
+            return order_status
 
 if __name__=='__main__':
     client = Client()
