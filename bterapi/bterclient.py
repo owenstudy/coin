@@ -1,6 +1,7 @@
 from bterapi import common
 from bterapi import keyhandler
 from bterapi.trade import TradeAPI,OrderItem
+import openorderlist
 
 #定义调用的客户端类，KEY和secrect在内部处理完成
 class Client:
@@ -29,6 +30,16 @@ class Client:
         else:
             coinbal=bal
         return coinbal
+    #得到open order list
+    def getOpenOrderList(self,coin_code_pair):
+        order_list=self.tradeapi.getOpenOrderList(coin_code_pair)
+        open_order_list=[]
+        for order in order_list:
+            open_order_item = openorderlist.OpenOrderItem(order.order_id,'bter',coin_code_pair,order.type,\
+                                                          float(order.rate),float(order.initial_amount),order.date)
+            open_order_list.append(open_order_item)
+        return open_order_list
+        pass
 
     #得到某个order的状态
     def getOrderStatus(self,orderid,coin_code=None):
@@ -51,9 +62,14 @@ class Client:
 if __name__=='__main__':
     bterclient=Client()
     #获取帐户余额
-    bal=bterclient.getMyBalance('cny')
+    #bal=bterclient.getMyBalance('cny')
 
-    submitorder=bterclient.submitOrder('doge_cny','sell',0.03,100)
-    print(submitorder.order_id)
+    #submitorder=bterclient.submitOrder('doge_cny','sell',0.03,100)
+    #print(submitorder.order_id)
     #print(bal)
+
+    #测试get open order list
+    open_order_list=bterclient.getOpenOrderList('doge_cny')
+    for order in open_order_list:
+        print(order.order_id)
 

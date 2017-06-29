@@ -6,7 +6,7 @@ __author__='Owen_Study/owen_study@126.com'
 '''自动检查市场行情并进行交易'''
 
 import logging;logging.basicConfig(level=logging.INFO,filename='translog.log')
-import time,os,traceback
+import time,os,traceback,asyncio
 import ordermanage
 import pricemanage,sharedmarketcoin
 
@@ -28,23 +28,29 @@ class TradeRobot(object):
         self.__transfer_charge_rate={'ltc':0.0,'doge':0,'xpm':0,'ppc':0}
         #每次投资的金额标准
         self.__std_amount=10
+        #rounding num，根据币种得到交易单位的小数位
+        self.__rounding_num={'ltc':4, 'doge':2,'ppc':3}
+
+        #价格检查次数
+        self.__check_price_num=0
         pass
 
     '''开始检测交易'''
     def start(self):
         processnum = 1
         while (1==1):
-
             try:
                 self.price_analyze()
-                time.sleep(0.1)
-                if processnum % 10 == 0:
-                    print('已经处理了:%d次' % processnum)
             except Exception as e:
-                exstr = traceback.format_exc()
-                print(exstr)
+                #exstr = traceback.format_exc()
+                #print(exstr)
+                print(str(e))
                 print('%d 次process error!' % processnum)
             finally:
+                time.sleep(0.1)
+                currtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+                if processnum % 10 == 0:
+                    print('%s: 已经处理了:%d次' % (currtime,processnum))
                 processnum = processnum + 1
         pass
 
@@ -57,6 +63,7 @@ class TradeRobot(object):
                 self.__coin_rearch()
                 #time.sleep(0.5)
                 if processnum % 10 == 0:
+
                     print('已经研究了:%d次' % processnum)
             except Exception as e:
                 exstr = traceback.format_exc()
@@ -64,6 +71,9 @@ class TradeRobot(object):
                 print('%d 次process error!' % processnum)
         pass
 
+    '''获取射程的rounding 位数，默认为2位'''
+    def __get_rounding_num(self,coin_code):
+        return self.__rounding_num.get(coin_code,2)
 
     '''test twin_trans'''
     def test_twin_trans(self):
@@ -117,7 +127,7 @@ class TradeRobot(object):
 
         trans_succ_flag=False
         #max waitting seconds
-        max_wait_seconds=5
+        max_wait_seconds=8
         #Check trans type, sell or buy
         if trans_type=='buy':
             order_market=self.__order_base
@@ -208,13 +218,16 @@ class TradeRobot(object):
         trans_success=False
         buy_cny=self.__price_base.sell_cny
         sell_cny=self.__price_vs.buy_cny
-        trans_units=round(self.__std_amount/buy_cny,2)
+        rounding_num=self.__get_rounding_num(self.__trans_coin_code)
+        trans_units=round(self.__std_amount/buy_cny,rounding_num)
         self.__order_base = ordermanage.OrderManage(self.__market_base)
         self.__order_vs = ordermanage.OrderManage(self.__market_vs)
         # 调用买入操作
         buy_success=self.__twin_trans('buy',self.__trans_coin_code,trans_units,buy_cny)
         if buy_success:
             sell_success=self.__twin_trans('sell',self.__trans_coin_code,trans_units,sell_cny)
+            #目前的方案只要买入成功，则卖出订单不取消，只是检查状态当时有没有成交
+            self.__trans_log()
             if sell_success:
                 trans_success=True
         return trans_success
@@ -377,6 +390,12 @@ class TradeRobot(object):
                     price_vs=pricemanage.PriceManage(market_vs,coin).get_coin_price()
 
                     price_check_result=self.__price_check(coin,price_base,price_vs)
+
+                    self.__check_price_num=self.__check_price_num+1
+                    currtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+                    if self.__check_price_num % 10 == 0:
+                        print('%s: 已经检查了%d次的价格' % (currtime, self.__check_price_num))
+
                     # TODO for testing
                     #price_check_result=True
                     #如果价格可以进行买卖刚返回
@@ -404,9 +423,8 @@ class TradeRobot(object):
                             trans_status=self.__trans_apply()
                             if trans_status:
                                 print('交易成功!')
-                                self.__trans_log()
                             else:
-                                print('交易失败！')
+                                print('交易失败/或卖出当时未成功！')
                         else:
                             print('帐户余额不足！')
 
@@ -422,7 +440,8 @@ class TradeRobot(object):
         profitrate=float((sell_price-buy_price)/buy_price)
         buy_cny=float(self.__price_base.sell_cny)
         sell_cny=float(self.__price_vs.buy_cny)
-        trans_units=float(round(self.__std_amount/buy_cny,2))
+        rounding_num=self.__get_rounding_num(self.__trans_coin_code)
+        trans_units=float(round(self.__std_amount/buy_cny,rounding_num))
         currtime=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
         try:
             logging.info('%s|%s|%s|%s|%f|%f|%f|%f|%f|%f|'%(currtime,\
@@ -487,8 +506,24 @@ class TradeRobot(object):
 #test
 if __name__=='__main__':
     #price_base = pricemanage.PriceManage('bter', 'doge').get_coin_price()
-    robot=TradeRobot()
+    robot=TradeRobot(0.008)
     robot.start()
+
+"""
+    async def init(loop):
+        robot = TradeRobot(0.008)
+        await robot.start()
+
+        return None
+
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(init(loop))
+    loop.run_forever()
+"""
+
+
+
     #robot.test_twin_trans()
     #robot.price_analyze()
     #robot.start_rearch()

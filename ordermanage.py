@@ -30,9 +30,22 @@ class OrderManage:
     def getOrderStatus(self,orderid,coin_code=None):
         time.sleep(0.1)
         return self.clientapi.getOrderStatus(orderid,coin_code)
-
+    #订单open列表
+    def getOpenOrderList(self,coin_code_pair):
+        return self.clientapi.getOpenOrderList(coin_code_pair)
 #test
 if __name__=='__main__':
+    #test open order list
+    orderhandler=OrderManage('btc38')
+    orderlist=orderhandler.getOpenOrderList('doge_cny')
+    for order in orderlist:
+        print('order_id:%s,order_market:%s,coin_code_pair：%s'%\
+              (order.order_id,order.market,order.coin_code_pair))
+
+    pass
+
+
+"""
     bterorder=OrderManage('btc38')
     order=bterorder.submitOrder('doge_cny','sell',0.04,100)
     orderstatus=bterorder.getOrderStatus(order.order_id,'doge')
@@ -43,6 +56,7 @@ if __name__=='__main__':
     btc38order=OrderManage('btc38')
     bal=btc38order.getMyBalance('doge')
     print('BTC38:%f'%bal)
+"""
 
 
 

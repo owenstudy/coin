@@ -2,7 +2,7 @@
 import btc38.client
 import urlaccess
 import json,time
-import ast
+import openorderlist
 
 '''统一接口'''
 #test api transaction
@@ -37,8 +37,12 @@ class Client():
         if len(order2)>=2:
             orderid=order2[1]
         else:
-            #虚拟一个订单号
-            orderid=-1111111
+            if orderstatus=='success':
+                #虚拟一个订单号,直接成功的订单，没有 返回定单号则给一个虚拟的订单号
+                orderid = 1111111
+            else:
+                orderid = -1111111
+
         neworder={'order_id':orderid,'status':orderstatus}
         #转换成对象以方便 统一访问
         neworder2=urlaccess.JSONObject(neworder)
@@ -71,6 +75,22 @@ class Client():
         finally:
             return order_status
 
+    # 得到open order list
+    def getOpenOrderList(self, coin_code_pair):
+        coin_code=coin_code_pair.split('_')[0]
+        order_list = self.btc38clt.getOrderList(coin_code)
+        open_order_list = []
+        for order in order_list:
+            if order.get('type')=='1':
+                trans_type='buy'
+            else:
+                trans_type='sell'
+            open_order_item = openorderlist.OpenOrderItem(order.get('id'), 'btc38', coin_code_pair, trans_type, \
+                                                          float(order.get('price')), float(order.get('amount')), order.get('time'))
+            open_order_list.append(open_order_item)
+        return open_order_list
+        pass
+
     #取得订单状态
     def getOrderStatus(self,orderid,coin_code=None):
         #
@@ -94,7 +114,7 @@ class Client():
             #如果订单状态返回出错，则返回一个默认值
             print('获取订单状态出错')
             print(str(e))
-            order_status='closed'
+            order_status='open'
         finally:
             return order_status
 
@@ -102,9 +122,13 @@ if __name__=='__main__':
     client = Client()
     #submit=client.submitOrder('doge_cny','sell',0.03,100)
     #print(submit.order_id)
-    clt = client.getOrderStatus(367892140)
-    print(clt)
+    #clt = client.getOrderStatus(367892140)
+    #print(clt)
 
+    #test open order list
+    open_order_list=client.getOpenOrderList('doge_cny')
+    for order in open_order_list:
+        print('order_id:%s,trans_type:%s,trans_unit:%f'%(order.order_id,order.trans_type,float(order.trans_unit)))
 
 
 """

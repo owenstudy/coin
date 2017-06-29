@@ -4,7 +4,7 @@ import decimal
 
 class BTERConnection:
     domain = 'data.bter.com'
-    def __init__(self, timeout=30):
+    def __init__(self, timeout=5):
         self.conn = http.client.HTTPSConnection(self.domain, timeout=timeout)
 
     def close(self):

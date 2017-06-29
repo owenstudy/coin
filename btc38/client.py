@@ -77,7 +77,7 @@ class Client():
             data = data.encode('utf-8')
 
         req = urllib.request.Request(url=url, data=None, headers=headers) if not data else urllib.request.Request(url=url, data=data, headers=headers)
-        resp = urllib.request.urlopen(req,timeout=5)
+        resp = urllib.request.urlopen(req,timeout=30)
         result = resp.readlines()
         resp.close()
         return result
