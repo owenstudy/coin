@@ -50,13 +50,17 @@ class Client():
     #得到某个COIN或者全部的余额信息
     #pair e.g. doge_cny
     def getMyBalance(self,coin=None):
-        bal=self.btc38clt.getMyBalance()
-        if coin:
-            coinbal=float(bal[coin+'_balance'])
-        else:
-            coinbal=bal
-        #print(bal)
-        pass
+        try:
+            bal=self.btc38clt.getMyBalance()
+            if coin:
+                coinbal=float(bal[coin+'_balance'])
+            else:
+                coinbal=bal
+            #print(bal)
+            pass
+        except Exception as e:
+            print(str(e))
+            print('检查IP地址是不是加入了白名单！')
         return coinbal
     #取消定单,btc38传送时需要 放一个coin code否则为报错
     def cancelOrder(self,orderid,coin_code=None):
@@ -124,15 +128,16 @@ if __name__=='__main__':
     #print(submit.order_id)
     #clt = client.getOrderStatus(367892140)
     #print(clt)
+    """
+        #test open order list
+        open_order_list=client.getOpenOrderList('doge_cny')
+        for order in open_order_list:
+            print('order_id:%s,trans_type:%s,trans_unit:%f'%(order.order_id,order.trans_type,float(order.trans_unit)))
+    """
 
-    #test open order list
-    open_order_list=client.getOpenOrderList('doge_cny')
-    for order in open_order_list:
-        print('order_id:%s,trans_type:%s,trans_unit:%f'%(order.order_id,order.trans_type,float(order.trans_unit)))
 
-
-"""
     btc38clt=Client()
+    """
     bal=btc38clt.getMyBalance('doge')
     print(bal)
     neworder=btc38clt.submitOrder('doge_cny','sell',0.03,2000)
@@ -141,7 +146,7 @@ if __name__=='__main__':
     print(bal)
     cancel=btc38clt.cancelOrder(367711369)
     print(cancel)
+"""
     bal=btc38clt.getMyBalance('doge')
     print(bal)
-"""
 

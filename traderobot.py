@@ -12,7 +12,7 @@ import pricemanage,sharedmarketcoin
 
 class TradeRobot(object):
     '''自动侦测并进行交易，如果有指定盈利比例则按指定的标准进行，否则自动计算'''
-    def __init__(self,std_profit_rate=0.009):
+    def __init__(self,std_profit_rate=0.008):
         #监测市场列表，目前只支持下面2个市场，如需要增加市场，需要增加对应的市场交易接口
         self.__market_list=['bter','btc38']
         #监控的coin列表，由于交易需要对应的coin做为基础，如果需要对相应的币种进行监控并交易，需要准备一些币种作为种子
@@ -42,8 +42,8 @@ class TradeRobot(object):
             try:
                 self.price_analyze()
             except Exception as e:
-                #exstr = traceback.format_exc()
-                #print(exstr)
+                exstr = traceback.format_exc()
+                print(exstr)
                 print(str(e))
                 print('%d 次process error!' % processnum)
             finally:
@@ -311,6 +311,11 @@ class TradeRobot(object):
         return trans_succ_flag
 
 
+    '''test check_account'''
+    def test_check_account(self):
+        self.__order_base = ordermanage.OrderManage('bter')
+        self.__order_vs=ordermanage.OrderManage('btc38')
+        self.__trans_coin_code='ppc'
 
     '''检查帐户余额是不是满足交易'''
     def __check_account(self):

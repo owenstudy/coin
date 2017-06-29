@@ -59,6 +59,7 @@ class ExchAccountBal(object):
                         #开始处理帐户对倒
                         exch_status = self.single_balance_market(market_base,market_vs,coin)
                         bal_times=bal_times+1
+                        time.sleep(60)
                         if bal_times%10==0:
                             print('%s: 执行了%d次均衡同步' % (self.__get_curr_time(), bal_times))
 
