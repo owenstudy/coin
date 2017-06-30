@@ -81,14 +81,16 @@ class TradeRobot(object):
         #测试卖出操作
         test_market = 'bter'
         self.__order_vs = ordermanage.OrderManage(test_market)
+        self.__order_base = ordermanage.OrderManage(test_market)
         status_bter=False
-        #status_bter = self.__twin_trans('sell', 'doge', 1000, 0.05)
+        status_bter = self.__twin_trans('buy', 'doge', 100, 0.05)
         print('test trans(SELL) exec result @%s:' % test_market)
         if status_bter:
             print('transaction done successfully!')
         else:
             print('transaction failed!')
         test_market = 'btc38'
+        """
         self.__order_vs = ordermanage.OrderManage(test_market)
         status_btc38 = self.__twin_trans('sell', 'doge', 1000, 0.05)
         print('test trans(SELL) exec result @%s:' % test_market)
@@ -96,7 +98,7 @@ class TradeRobot(object):
             print('transaction done successfully!')
         else:
             print('transaction failed!')
-
+        """
         #测试买入操作
         test_market='bter'
         self.__order_base = ordermanage.OrderManage(test_market)
@@ -124,7 +126,7 @@ class TradeRobot(object):
     @:parameter trans_price, trans price
     """
     def __twin_trans(self,trans_type,coin_code,trans_units,trans_price):
-
+        # 默认交易是失败的，只有在满足特定的条件才算成功
         trans_succ_flag=False
         #max waitting seconds
         max_wait_seconds=8
@@ -171,12 +173,18 @@ class TradeRobot(object):
                 #先测试 只有买不成交时才取消，卖出不进行取消，直到等到交易结束
                 if trans_type=='buy':
                     cancelorder = order_market.cancelOrder(order_id, coin_code)
-                    print('买入超时取消!')
+                    # 如果取消失败需要处理，这时订单可能已经成交，导致显示的提示不正确
+                    if cancelorder=='success':
+                        print('买入超时取消!')
+                        trans_succ_flag=False
+                    else:
+                        #可能出现在取消的时候订单成交的情况，只能取消成功的进修才算取消，默认是成交了
+                        trans_succ_flag = True
                 else:
                     cancelorder='fail'
                     print('卖出超时，继续等......')
 
-                #
+                """
                 # For selling, keep sell until success since buy transaction has done
                 if trans_type=='sell' and cancelorder=='success':
                     # 按市场当前价卖出
@@ -193,6 +201,7 @@ class TradeRobot(object):
                         # 8折的报价还没有卖出，则提示，不取消订单，由人工干预处理
                         logging.info('我努力了%f秒钟打8折都没有卖出去，说明市场在狂跌，买的:%s那%f份就存手里面等着以后发了再说，散了吧......'\
                                      %(max_wait_seconds,coin_code,trans_units))
+                    """
         return trans_succ_flag
 
     def test_trans_apply(self):
@@ -513,6 +522,9 @@ if __name__=='__main__':
     #price_base = pricemanage.PriceManage('bter', 'doge').get_coin_price()
     robot=TradeRobot(0.008)
     robot.start()
+
+    #twin trans test
+    #robot.test_twin_trans()
 
 """
     async def init(loop):

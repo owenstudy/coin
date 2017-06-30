@@ -59,7 +59,7 @@ class ExchAccountBal(object):
                         #开始处理帐户对倒
                         exch_status = self.single_balance_market(market_base,market_vs,coin)
                         bal_times=bal_times+1
-                        time.sleep(60)
+                        time.sleep(10)
                         if bal_times%10==0:
                             print('%s: 执行了%d次均衡同步' % (self.__get_curr_time(), bal_times))
 
@@ -233,7 +233,7 @@ class ExchAccountBal(object):
         #均衡市场是标准交易的多少倍
         bal_times=100
         #帐户标准交易额的100倍，如果低于这个金额则进行两个市场的平衡
-        if bal_vs>self.__std_amount*bal_times:
+        if bal_vs<self.__std_amount*bal_times:
             #需要卖出市场的COIN的比例是不是占总COIN的4成以上并且余额是交易单位的指定倍数以上
             if bal_coin_vs>total_coin_bal*0.4 :
                 need_exchange=False

@@ -35,28 +35,32 @@ class OrderManage:
         return self.clientapi.getOpenOrderList(coin_code_pair)
 #test
 if __name__=='__main__':
-    #test open order list
-    orderhandler=OrderManage('btc38')
-    orderlist=orderhandler.getOpenOrderList('doge_cny')
-    for order in orderlist:
-        print('order_id:%s,order_market:%s,coin_code_pair：%s'%\
-              (order.order_id,order.market,order.coin_code_pair))
+    """
+        #test open order list
+        orderhandler=OrderManage('btc38')
+        orderlist=orderhandler.getOpenOrderList('doge_cny')
+        for order in orderlist:
+            print('order_id:%s,order_market:%s,coin_code_pair：%s'%\
+                  (order.order_id,order.market,order.coin_code_pair))
+    
+        pass
+    """
 
-    pass
 
+    bterorder=OrderManage('bter')
+    order=bterorder.submitOrder('doge_cny','sell',0.01,100)
+    cancelorder=bterorder.cancelOrder(order.order_id,'doge')
 
-"""
-    bterorder=OrderManage('btc38')
-    order=bterorder.submitOrder('doge_cny','sell',0.04,100)
     orderstatus=bterorder.getOrderStatus(order.order_id,'doge')
     print(orderstatus)
+    """
     bal=bterorder.getMyBalance('doge')
     print('BTER:%f'%bal)
 
     btc38order=OrderManage('btc38')
     bal=btc38order.getMyBalance('doge')
     print('BTC38:%f'%bal)
-"""
+    """
 
 
 
