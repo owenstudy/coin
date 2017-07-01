@@ -33,8 +33,11 @@ class ExchAccountBal(object):
         #均衡交易的倍数
         self.__exch_times=2
         #最大open均衡的订单
-        self.__max_open_num=10
-
+        self.__max_open_num=15
+        #自动均衡的POOL的大小，是每次交易的整数倍
+        self.__money_pool_size=100
+        #自动进行资金池均衡的coin
+        self.__money_pool_coin='doge'
         pass
 
     '''开始平衡处理'''
@@ -56,8 +59,13 @@ class ExchAccountBal(object):
                         self.__market_vs=market_vs
                         self.__order_base = ordermanage.OrderManage(self.__market_base)
                         self.__order_vs = ordermanage.OrderManage(self.__market_vs)
-                        #开始处理帐户对倒
-                        exch_status = self.single_balance_market(market_base,market_vs,coin)
+                        #开始处理帐户对倒,
+                        if coin==self.__money_pool_coin:
+                            #对资金池进行均衡
+                            exch_status = self.single_balance_market(market_base, market_vs, coin,'Y')
+                        else:
+                            #对COIN进行均衡
+                            exch_status = self.single_balance_market(market_base,market_vs,coin)
                         bal_times=bal_times+1
                         time.sleep(10)
                         if bal_times%10==0:
@@ -82,7 +90,7 @@ class ExchAccountBal(object):
             trans_price=price_vs.buy_cny
         else:
             #只有两个市场的价格相差在0.5%之内才进行
-            if abs(diff_rate)<0.01:
+            if abs(diff_rate)<0.003:
                 if self.__price_rising_trend(coin_code):
                     #优先用买方市场的卖出价格，因为价格最近上涨趋势，先锁定买入
                     trans_price=price_base.sell_cny
@@ -113,6 +121,7 @@ class ExchAccountBal(object):
         price_vs = pricemanage.PriceManage(market_vs, coin_code).get_coin_price()
 
         trans_price=self.__get_trans_price(price_base,price_vs,coin_code)
+        #价格两个市场变动范围不在约定的范围 内则不返回价格，不需要进行交易
         if trans_price==None:
             return False
         sell_status=None
@@ -125,23 +134,33 @@ class ExchAccountBal(object):
         if sell_order_id==1111111:
             sell_status='closed'
         #买入交易
-        buy_trans=order_base.submitOrder(coin_code+'_cny','buy',trans_price,trans_units)
-        buy_order_id=buy_trans.order_id
-        if buy_order_id == 1111111:
-            buy_status = 'closed'
+        #buy_trans=order_base.submitOrder(coin_code+'_cny','buy',trans_price,trans_units)
+        #buy_order_id=buy_trans.order_id
+        #if buy_order_id == 1111111:
+        #    buy_status = 'closed'
         #循环检查状态，直至交易成功后才结束返回
         trans_status=False
         waiting_seconds=0
         #最多待时间，持续检查均衡订单的状态
-        max_waiting_seconds=30
+        max_waiting_seconds=5
         #按每次交易金额的X倍来进行帐户之间平衡
         trans_amount=self.__std_amount*self.__exch_times
         while(not trans_status and waiting_seconds<max_waiting_seconds):
             try:
                 if sell_status!='closed':
                     sell_status = order_vs.getOrderStatus(sell_order_id, coin_code)
-                if buy_status!='closed':
-                    buy_status = order_base.getOrderStatus(buy_order_id, coin_code)
+                else:
+                    # 成功后再开始买入操作
+                    if buy_status==None:
+                        buy_trans = order_base.submitOrder(coin_code + '_cny', 'buy', trans_price, trans_units)
+                        buy_order_id = buy_trans.order_id
+                        time.sleep(0.1)
+                        if sell_order_id == 1111111:
+                            sell_status = 'closed'
+                        else:
+                            buy_status = order_base.getOrderStatus(buy_order_id, coin_code)
+                    elif buy_status!='closed':
+                        buy_status = order_base.getOrderStatus(buy_order_id, coin_code)
             except Exception as e:
                 print(str(e))
                 pass
@@ -149,25 +168,31 @@ class ExchAccountBal(object):
                 time.sleep(1)
                 waiting_seconds = waiting_seconds + 1
                 if sell_status=='closed' and buy_status=='closed':
-                    currtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
-                    logging.info('%s:已经成功从市场@%s 卖出%f,从市场@%s同样买入'\
-                    %(currtime,market_vs,self.__std_amount,market_base))
+                    logging.info('%s:均衡交易：成功,已经成功卖出:%s@%s,金额:%f,从市场@%s同样买入：当前成交！'\
+                    %(self.__get_curr_time(),coin_code,market_vs,trans_amount,market_base))
                     trans_status=True
                     waiting_seconds=max_waiting_seconds+5
 
         if waiting_seconds== max_waiting_seconds:
-            logging.info('%d秒后同步操作还没有完成，要人工关注一下!'%max_waiting_seconds)
+            #卖出一直未成功，则取消本次的操作
+            if sell_status!='closed' and buy_status==None:
+                cancel_status=order_base.cancelOrder(sell_order_id,coin_code)
+                if cancel_status=='fail':
+                    logging.warning('%s:取消卖单状态:失败,均衡交易中卖出%s@%s,金额:%f在指定时间未内成交！'%(self.__get_curr_time(),coin_code),market_vs,trans_amount)
+                else:
+                    logging.info('%s:取消卖单状态:成功,均衡交易中卖出%s@%s,金额:%f在指定时间未内成交！' % (self.__get_curr_time(), coin_code),
+                                 market_vs, trans_amount)
+            else:
+                logging.warning('%s:均衡交易(buyOrderId:%s）：在途,已经成功卖出:%s@%s,金额:%f,从市场@%s同样买入：当前未成交！' \
+                             % (self.__get_curr_time(),buy_order_id, coin_code, market_vs, trans_amount, market_base))
 
         return trans_status
         pass
 
-    '''单个交易处理，返回订单id和status'''
-    def single_trans(self,market_base,trans_type,coin_code,trans_units,trans_price,curr_type='cny'):
-        pass
     '''对全部的列表进行测试'''
 
     '''自动均衡两个市场之间的帐户RMB和COIN之间的关系'''
-    def single_balance_market(self,market_base,market_vs,coin_code):
+    def single_balance_market(self,market_base,market_vs,coin_code,money_pool_bal_indi=None):
         #如果需要均衡时则循环进行帐户均衡
         need_balance_flag=True
         single_bal_status=False
@@ -179,19 +204,22 @@ class ExchAccountBal(object):
         try:
             status_comment='fail'
             #检查帐户状态，是不是需要均衡市场
-            need_balance_flag = self.__check_balance_flag(market_base, market_vs, coin_code)
+            if money_pool_bal_indi:
+                need_balance_flag = self.__check_money_pool(market_base, market_vs, coin_code)
+            else:
+                need_balance_flag = self.__check_balance_flag(market_base, market_vs, coin_code)
             exch_open_order_num=self.check_open_order_num(coin_code+'_cny')
             #买和卖方均衡ORDER的总数量不能超过X个，超过X个则等成交后再来生成
             if need_balance_flag and exch_open_order_num<=self.__max_open_num:
-                    single_bal_status=self.exch_balance(market_base,market_vs,coin_code)
-            if single_bal_status:
-                status_comment = 'success'
-            else:
-                status_comment = 'fail'
-            logging.info('%s: 已经自动对@%s增加RMB，对%s减少RMB进行了操作,状态:%s！' \
-                         % (self.__get_curr_time(), market_vs, market_base, status_comment))
-                #同步一次失败后10分钟后再进行同步，以确定这个交易能完成，如果完不成同步也确保不会有频繁的多次同步
-                #time.sleep(10*30)
+                single_bal_status=self.exch_balance(market_base,market_vs,coin_code)
+                if single_bal_status:
+                    status_comment = 'success'
+                else:
+                    status_comment = 'fail'
+                #logging.info('%s: 已经自动对@%s增加RMB，对%s减少RMB进行了操作,状态:%s！' \
+                #             % (self.__get_curr_time(), market_vs, market_base, status_comment))
+                    #同步一次失败后10分钟后再进行同步，以确定这个交易能完成，如果完不成同步也确保不会有频繁的多次同步
+                    #time.sleep(10*30)
             return status_comment
         except:
             pass
@@ -209,7 +237,47 @@ class ExchAccountBal(object):
         else:
             print('bter市场不需要均衡处理')
         pass
+    ''''''
+    def test_check_money_pool(self):
+        result=self.__check_money_pool('btc38','bter','doge')
+        if result:
+            print('资金池需要均衡')
+        else:
+            print('资金池不需要均衡')
+
     '''检查资金池的状态，确定是不是需要均衡，返回True/False'''
+    def __check_money_pool(self,market_base,market_vs,coin_code):
+        try:
+            order_base= ordermanage.OrderManage(market_base)
+            order_vs=ordermanage.OrderManage(market_vs)
+            #返回标志
+            result_flag=False
+            #只检查两个市场的RMB金额，默认coin是足够交易的
+            bal_base=order_base.getMyBalance('cny')
+            bal_vs=order_vs.getMyBalance('cny')
+            #检查coin的数量是不是满足当前市场是总市场容量的一半
+            #bal_coin_base=float(order_base.getMyBalance(coin_code))
+            bal_coin_vs=float(order_vs.getMyBalance(coin_code))
+            #大概的交易价格
+            # vs的市场价格
+            price_vs = pricemanage.PriceManage(market_vs, coin_code).get_coin_price()
+            #币种 的阀值倍数
+            coiin_bal_times=5
+            #每次交易的单位数
+            trans_unit_per_time=self.__std_amount/price_vs.buy_cny
+            money_pool_amt=self.__std_amount*self.__money_pool_size
+            #帐户标准交易额的X倍，如果低于这个金额则进行两个市场的平衡
+            if bal_vs<money_pool_amt:
+                #只有待均衡的COIN的金额在资金池的3成以上才进行均衡
+                if bal_coin_vs*price_vs.buy_cny/money_pool_amt>0.3:
+                    result_flag=True
+        except Exception as e:
+            print(str(e))
+            print('获取资金池状态是否需要均衡时出错')
+        return result_flag
+        pass
+
+    '''检查COIN池的情况确定是不是需要均衡处理'''
     def __check_balance_flag(self,market_base, market_vs,coin_code):
         order_base= ordermanage.OrderManage(market_base)
         order_vs=ordermanage.OrderManage(market_vs)
@@ -232,16 +300,29 @@ class ExchAccountBal(object):
         need_exchange=False
         #均衡市场是标准交易的多少倍
         bal_times=100
+        #币种 的阀值倍数
+        coiin_bal_times=5
+        #每次交易的单位数
+        trans_unit_per_time=self.__std_amount/price_base.sell_cny
         #帐户标准交易额的100倍，如果低于这个金额则进行两个市场的平衡
-        if bal_vs<self.__std_amount*bal_times:
-            #需要卖出市场的COIN的比例是不是占总COIN的4成以上并且余额是交易单位的指定倍数以上
-            if bal_coin_vs>total_coin_bal*0.4 :
-                need_exchange=False
+        if bal_vs<float(self.__std_amount*bal_times):
+            #需要卖出市场的COIN的比例是不是占总COIN的X成以上并且余额是交易单位的指定倍数以上
+            if float(bal_coin_vs)>float(total_coin_bal*0.3):
+                # Coin is enough and need sell coin to get money, the estimated amount is greater than 1000
+                if float(bal_coin_vs)>float(total_coin_bal*0.3) and (price_base.sell_cny*bal_coin_vs)>1000:
+                    need_exchange=True
+                else:
+                    need_exchange=False
             else:
-                if bal_coin_vs<(self.__std_amount/price_base.sell_cny)*bal_times:
+                # 对于COIN来说，只要是小于总量的30%才需要进行均衡
+                if bal_coin_vs<float(trans_unit_per_time*coiin_bal_times) and bal_coin_vs<float(total_coin_bal*0.3):
                     need_exchange=True
         else:
-            need_exchange=True
+            # 对于COIN来说，只要是小于总量的30%才需要进行均衡
+            if bal_coin_vs < float(trans_unit_per_time * coiin_bal_times) and bal_coin_vs < float(total_coin_bal * 0.3):
+                need_exchange = True
+            else:
+                need_exchange=False
         return need_exchange
 
     '''检查同时操作的完成情况，返回True/False'''
@@ -286,7 +367,7 @@ class ExchAccountBal(object):
         pass
 #test
 if __name__=='__main__':
-    market_list=['bter','btc38']
+    market_list=['btc38','bter']
     coin_list=['doge']
     exchbal=ExchAccountBal(market_list,coin_list,10)
     exchbal.start()
@@ -294,3 +375,6 @@ if __name__=='__main__':
     #exchbal.single_balance_market('btc38','bter','doge')
     #exchbal.test_check_balance_flag()
     #exchbal.test_check_exch_bal_status()
+
+    #test
+    #exchbal.test_check_money_pool()

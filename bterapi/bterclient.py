@@ -18,17 +18,23 @@ class Client:
     #得到某个COIN或者全部的余额信息
     #pair e.g. doge_cny
     def getMyBalance(self,coin=None):
-        bal = self.tradeapi.getFunds()
-        #coin, curr = pair.split("_")
-        #print(bal[coin]['available'])
-        if coin:
-            try:
-                coinbal=bal[coin]['available']
-            except:
-                coinbal=None
+        try:
+            bal = self.tradeapi.getFunds()
+            #coin, curr = pair.split("_")
+            #print(bal[coin]['available'])
+            coinbal = None
+            if coin:
+                try:
+                    coinbal=bal[coin]['available']
+                except:
+                    coinbal=None
 
-        else:
-            coinbal=bal
+            else:
+                coinbal=bal
+        except Exception as e:
+            print(str(e))
+            print('获取BTER余额异常！')
+            pass
         return coinbal
     #得到open order list
     def getOpenOrderList(self,coin_code_pair):

@@ -6,7 +6,7 @@ __author__='Owen_Study/owen_study@126.com'
 '''自动检查市场行情并进行交易'''
 
 import logging;logging.basicConfig(level=logging.INFO,filename='translog.log')
-import time,os,traceback,asyncio
+import time,os,traceback
 import ordermanage
 import pricemanage,sharedmarketcoin
 
@@ -430,8 +430,8 @@ class TradeRobot(object):
                         #预期盈利金额
                         profitamt=(self.__std_amount/price_base.sell_cny)*(price_vs.buy_cny-price_base.sell_cny)
 
-                        print('Coin:%s,BaseMarket(Buy):%s, VSmarket(Sell):%s,Buy price:%f,Sell price:%f,投资%f预期盈利:%f'\
-                              %(coin,market_base,market_vs,price_base.sell_cny,price_vs.buy_cny,self.__std_amount,profitamt))
+                        print('%s: Coin:%s,BaseMarket(Buy):%s, VSmarket(Sell):%s,Buy price:%f,Sell price:%f,投资%f预期盈利:%f'\
+                              %(self.__get_curr_time(),coin,market_base,market_vs,price_base.sell_cny,price_vs.buy_cny,self.__std_amount,profitamt))
                         #开始处理交易
                         if self.__check_account():
                             trans_status=self.__trans_apply()
@@ -516,6 +516,11 @@ class TradeRobot(object):
         return coinlist
 
     pass
+
+
+    def __get_curr_time(self):
+        currtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+        return currtime
 
 #test
 if __name__=='__main__':
