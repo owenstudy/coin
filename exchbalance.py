@@ -33,11 +33,13 @@ class ExchAccountBal(object):
         #均衡交易的倍数
         self.__exch_times=2
         #最大open均衡的订单
-        self.__max_open_num=15
+        self.__max_open_num=20
         #自动均衡的POOL的大小，是每次交易的整数倍
         self.__money_pool_size=100
         #自动进行资金池均衡的coin
         self.__money_pool_coin='doge'
+        #均衡时两个市场价格的差异比例，如0.005
+        self.__money_pool_price_rate_diff=0.005
         pass
 
     '''开始平衡处理'''
@@ -90,7 +92,7 @@ class ExchAccountBal(object):
             trans_price=price_vs.buy_cny
         else:
             #只有两个市场的价格相差在0.5%之内才进行
-            if abs(diff_rate)<0.003:
+            if abs(diff_rate)<self.__money_pool_price_rate_diff:
                 if self.__price_rising_trend(coin_code):
                     #优先用买方市场的卖出价格，因为价格最近上涨趋势，先锁定买入
                     trans_price=price_base.sell_cny

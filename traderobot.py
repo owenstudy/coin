@@ -117,7 +117,61 @@ class TradeRobot(object):
         else:
             print('transaction failed!')
 
+    def test_twin_trans_sell_overtime(self):
 
+        self.__order_base = ordermanage.OrderManage('bter')
+        order_market = self.__order_base
+        sell_order=order_market.submitOrder('doge_cny','sell',0.03,150)
+        sell_order_id=sell_order.order_id
+        resell_status=self.__twin_trans_sell_overtime_process(order_market,sell_order_id,'doge',0.01735,100)
+        pass
+    '''卖出超时处理,重卖处理完成为非0,表示重卖降价次数'''
+    def __twin_trans_sell_overtime_process(self,order_market,order_id,coin_code,origin_sell_price,trans_units):
+        try:
+            #通过不断循环来降低价格去促进成交,每次下降0.002个百分点
+            down_rate_step=0.002
+            # 对新订单进行跟踪处理直到完成
+            resell_times=0
+            # 每次卖单的等候时间
+            max_waiting_seconds=5
+            new_order_status=None
+            cancel_fail_times=0
+            while ( new_order_status!='closed' and cancel_fail_times<10 ):
+                waiting_seconds = 0
+                #每个订单循环检查X秒
+                while(waiting_seconds<max_waiting_seconds and new_order_status!=None):
+                    new_order_status = order_market.getOrderStatus(new_order_id, coin_code)
+                    time.sleep(1)
+                    waiting_seconds=waiting_seconds+1
+                    if new_order_status=='closed':
+                        waiting_seconds=max_waiting_seconds+1
+                #降价没有卖出去，继续取消降价
+                if new_order_status!='closed':
+                    resell_times=resell_times+1
+                    if new_order_status==None:
+                        new_order_id=order_id
+                    # 取消上一次的订单,第一次为传进来的订单号
+                    previous_order=order_market.cancelOrder(new_order_id,coin_code)
+                    if previous_order=='success':
+                        #每次降低down_rate_step（0.002)
+                        new_sell_price=origin_sell_price*(1-down_rate_step*resell_times)
+                        new_order=order_market.submitOrder(coin_code+'_cny','sell',new_sell_price,trans_units)
+                        new_order_id=new_order.order_id
+                        #新提交订单的状态
+                        new_order_status=order_market.getOrderStatus(new_order_id,coin_code)
+                    else:
+                        print('订单降价过程中取消失败，可能系统已经成交!')
+                        cancel_fail_times=cancel_fail_times+1
+                pass
+            pass
+        except Exception as e:
+            print(str(e))
+            return 0
+        if new_order_status=='closed':
+            return resell_times
+        else:
+            return 0
+        pass
 
     '''twin trans, sell or buy in different market'''
     """
@@ -160,16 +214,6 @@ class TradeRobot(object):
                     waitseconds = waitseconds + 1
             # 超过时间后则取消该订单，任务取消
             if waitseconds == max_wait_seconds:
-                # 取消原订单--For buy&sell
-                """
-                cancelorder=order_market.cancelOrder(order_id,coin_code)
-                if cancelorder=='success':
-                    if trans_type=='buy':
-                        trans_succ_flag=True
-                else:
-                    print('订单过期取消失败!')
-                
-                """
                 #先测试 只有买不成交时才取消，卖出不进行取消，直到等到交易结束
                 if trans_type=='buy':
                     cancelorder = order_market.cancelOrder(order_id, coin_code)
@@ -178,30 +222,18 @@ class TradeRobot(object):
                         print('买入超时取消!')
                         trans_succ_flag=False
                     else:
-                        #可能出现在取消的时候订单成交的情况，只能取消成功的进修才算取消，默认是成交了
+                        #可能出现在取消的时候订单成交的情况，只能取消成功的订单才算取消，默认是成交了
                         trans_succ_flag = True
                 else:
-                    cancelorder='fail'
-                    print('卖出超时，继续等......')
-
-                """
-                # For selling, keep sell until success since buy transaction has done
-                if trans_type=='sell' and cancelorder=='success':
-                    # 按市场当前价卖出
-                    newtrans = order_market.submitOrder(coin_code + '_cny', trans_type, trans_price*0.8,\
-                                                           trans_units)
-                    logging.info('江湖有危险，打8折去卖的，成交价就听天由命了，参考下面的明细！')
-                    neworder_id=newtrans.order_id
-                    #等几秒钟再来检查状态
-                    time.sleep(2)
-                    neworderstatus = order_market.getOrderStatus(neworder_id, coin_code)
-                    if neworderstatus=='closed':
-                        trans_succ_flag = True
+                    print('卖出超时，等待降价卖出......')
+                    # 卖出超时取消卖单
+                    resell_times=self.__twin_trans_sell_overtime_process(order_market,order_id,coin_code,trans_price,trans_units)
+                    if resell_times>0:
+                        print('降价%d次后成功卖出'%resell_times)
+                        trans_succ_flag=True
                     else:
-                        # 8折的报价还没有卖出，则提示，不取消订单，由人工干预处理
-                        logging.info('我努力了%f秒钟打8折都没有卖出去，说明市场在狂跌，买的:%s那%f份就存手里面等着以后发了再说，散了吧......'\
-                                     %(max_wait_seconds,coin_code,trans_units))
-                    """
+                        print('降价卖出时错误，请人工检查卖出情况!')
+                        trans_succ_flag = False
         return trans_succ_flag
 
     def test_trans_apply(self):
@@ -240,85 +272,6 @@ class TradeRobot(object):
             if sell_success:
                 trans_success=True
         return trans_success
-
-
-
-    '''检测价格'''
-    '''多市场同时交易,交易之前已经检查过余额'''
-    def __trans_applyX(self):
-        buy_cny=self.__price_base.sell_cny
-        sell_cny=self.__price_vs.buy_cny
-        trans_units=round(self.__std_amount/buy_cny,2)
-        #bterorder.submitOrder(coincode+'_cny','buy',buyprice,transunit)
-        trans_base=self.__order_base.submitOrder(self.__trans_coin_code+'_cny','buy',buy_cny,trans_units)
-        orderid=trans_base.order_id
-        transflag=False
-        trans_succ_flag=False
-        #等OPEN交易的最长秒数
-        max_wait_seconds = 5
-        if orderid:
-            #检查order_id是不是成交TODO
-            orderstatus=self.__order_base.getOrderStatus(orderid,self.__trans_coin_code)
-            if orderstatus=='closed':
-                transflag=True
-            #没有成交的订单则等预定的秒数，超时还没有成交刚取消
-            else:
-                waitseconds=0
-                transflag=False
-                while (waitseconds<max_wait_seconds):
-                    time.sleep(1)
-                    orderstatus = self.__order_base.getOrderStatus(orderid,self.__trans_coin_code)
-                    if orderstatus=='closed':
-                        waitseconds=max_wait_seconds+5    #退出
-                        transflag=True
-                    else:  #没有成效刚继续等待检查
-                        waitseconds=waitseconds+1
-                    #超过时间后则取消该订单，任务取消
-                    if waitseconds==max_wait_seconds:
-                        self.__order_base.cancelOrder(orderid)
-            #只有买入成功后才进行卖出操作
-            if transflag:
-                trans_vs=self.__order_vs.submitOrder(self.__trans_coin_code+'_cny','sell',sell_cny,trans_units)
-                sell_order_id=trans_vs.order_id
-                sell_order_status=self.__order_vs.getOrderStatus(sell_order_id,self.__trans_coin_code)
-                if sell_order_status=='closed':
-                    trans_succ_flag=True
-                else:
-                    pass
-                    #todo循环处理，直到成功
-                    waitseconds = 0
-                    while (waitseconds < max_wait_seconds):
-                        #每1秒检查 一次
-                        time.sleep(1)
-                        orderstatus = self.__order_base.getOrderStatus(orderid, self.__trans_coin_code)
-                        if orderstatus == 'closed':
-                            waitseconds = max_wait_seconds+5  # 退出
-                            trans_succ_flag = True
-                        else:  # 没有成效刚继续等待检查
-                            waitseconds = waitseconds + 1
-                        # 超过时间后则取消该订单，任务取消
-                        if waitseconds == max_wait_seconds:
-                            #取消原订单
-                            self.__order_base.cancelOrder(orderid)
-                            #按市场当前价卖出
-                            newtrans_vs = self.__order_vs.submitOrder(self.__trans_coin_code + '_cny', 'sell', sell_cny*0.8,\
-                                                                   trans_units)
-                            logging.info('江湖有危险，打8折去卖的，成交价就听天由命了，参考下面的明细！')
-                            neworder_id=newtrans_vs.order_id
-                            neworderstatus = self.__order_base.getOrderStatus(neworder_id, self.__trans_coin_code)
-                            if neworderstatus=='closed':
-                                trans_succ_flag = True
-                            else:
-                                #8折的报价还没有卖出，则取消
-                                self.__order_base.cancelOrder(neworder_id)
-                                trans_succ_flag=False
-                                logging.info('我努力了%f秒钟打8折都没有卖出去，说明市场在狂跌，买的:%s那%f份就存手里面等着以后发了再说，散了吧......'\
-                                             %(max_wait_seconds,self.__trans_coin_code,self.__std_amount))
-
-                pass
-            pass
-        return trans_succ_flag
-
 
     '''test check_account'''
     def test_check_account(self):
@@ -386,7 +339,7 @@ class TradeRobot(object):
                         print('Date:%s,Coin:%s,BaseMarket(Buy):%s, VSmarket(Sell):%s,Buy price:%f,Sell price:%f,投资%f预期盈利:%f' \
                               % (currtime,coin, market_base, market_vs, price_base.sell_cny, price_vs.buy_cny, self.__std_amount,
                                  profitamt))
-
+    '''根据当前的仓位自动调整盈利比例'''
     #返回分析结果，哪个市场买入，哪个市场卖出
     def price_analyze(self):
         #比较多个市场之间的价格
@@ -525,26 +478,11 @@ class TradeRobot(object):
 #test
 if __name__=='__main__':
     #price_base = pricemanage.PriceManage('bter', 'doge').get_coin_price()
-    robot=TradeRobot(0.008)
+    robot=TradeRobot(0.009)
     robot.start()
-
+    #robot.test_twin_trans_sell_overtime()
     #twin trans test
     #robot.test_twin_trans()
-
-"""
-    async def init(loop):
-        robot = TradeRobot(0.008)
-        await robot.start()
-
-        return None
-
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(init(loop))
-    loop.run_forever()
-"""
-
-
 
     #robot.test_twin_trans()
     #robot.price_analyze()
