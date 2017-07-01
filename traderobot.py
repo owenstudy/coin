@@ -24,6 +24,8 @@ class TradeRobot(object):
         self.__coin_list=['doge','ltc','ppc']
         #盈利操作的起点
         self.__std_profit_rate=std_profit_rate
+        #原始的盈利水平，因为仓位会调整标准 的盈利比例
+        self.__std_profit_rate_bk=std_profit_rate
         #coin在市场之间传送的费用，有的是免费的，有的是收费的,需要地看各个市场的情况进行初始化
         self.__transfer_charge_rate={'ltc':0.0,'doge':0,'xpm':0,'ppc':0}
         #每次投资的金额标准
@@ -271,6 +273,8 @@ class TradeRobot(object):
             self.__trans_log()
             if sell_success:
                 trans_success=True
+            # 检查帐户的仓位并调整相应的盈利比例,使得下一次交易按新的盈利比例处理
+            self.__update_profit_rate((self.__order_vs))
         return trans_success
 
     '''test check_account'''
@@ -340,6 +344,20 @@ class TradeRobot(object):
                               % (currtime,coin, market_base, market_vs, price_base.sell_cny, price_vs.buy_cny, self.__std_amount,
                                  profitamt))
     '''根据当前的仓位自动调整盈利比例'''
+    def __update_profit_rate(self,order_vs):
+        money_bal=order_vs.getMyBalance('cny')
+        money_pool_size=self.__std_amount*100
+        #当仓位比较 低时自动增加盈利比例，降低资金的消耗速度
+        money_rate=money_bal/money_pool_size
+        if money_rate<0.4:
+            self.__std_profit_rate=self.__std_profit_rate*1.2
+        elif money_rate<0.3:
+            self.__std_profit_rate = self.__std_profit_rate * 1.3
+        elif money_rate < 0.2:
+            self.__std_profit_rate = self.__std_profit_rate * 1.4
+        else:
+            self.__std_profit_rate = self.__std_profit_rate_bk
+
     #返回分析结果，哪个市场买入，哪个市场卖出
     def price_analyze(self):
         #比较多个市场之间的价格
@@ -386,7 +404,9 @@ class TradeRobot(object):
                         print('%s: Coin:%s,BaseMarket(Buy):%s, VSmarket(Sell):%s,Buy price:%f,Sell price:%f,投资%f预期盈利:%f'\
                               %(self.__get_curr_time(),coin,market_base,market_vs,price_base.sell_cny,price_vs.buy_cny,self.__std_amount,profitamt))
                         #开始处理交易
+                        # 检查帐户的仓位并调整相应的盈利比例
                         if self.__check_account():
+                            #检查帐户的仓位并调整相应的盈利比例
                             trans_status=self.__trans_apply()
                             if trans_status:
                                 print('交易成功!')
