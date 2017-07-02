@@ -27,7 +27,7 @@ class TradeRobot(object):
         #原始的盈利水平，因为仓位会调整标准 的盈利比例
         self.__std_profit_rate_bk=std_profit_rate
         #coin在市场之间传送的费用，有的是免费的，有的是收费的,需要地看各个市场的情况进行初始化
-        self.__transfer_charge_rate={'ltc':0.0,'doge':0,'xpm':0,'ppc':0}
+        self.__transfer_charge_rate={'ltc':0.004,'doge':0,'xpm':0,'ppc':0}
         #每次投资的金额标准
         self.__std_amount=10
         #rounding num，根据币种得到交易单位的小数位
@@ -508,8 +508,8 @@ class TradeRobot(object):
 if __name__=='__main__':
     #price_base = pricemanage.PriceManage('bter', 'doge').get_coin_price()
     robot=TradeRobot(0.009)
-    #robot.start()
-    robot.test_twin_trans_sell_overtime()
+    robot.start()
+    #robot.test_twin_trans_sell_overtime()
     #twin trans test
     #robot.test_twin_trans()
 

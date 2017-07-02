@@ -244,7 +244,7 @@ class ExchAccountBal(object):
             if money_pool_bal_indi:
                 need_balance_flag = self.__check_money_pool(market_base, market_vs, coin_code)
             else:
-                need_balance_flag = self.__check_balance_flag(market_base, market_vs, coin_code)
+                need_balance_flag = self.__check_coin_pool(market_base, market_vs, coin_code)
             exch_open_order_num=self.check_open_order_num(coin_code+'_cny')
             #买和卖方均衡ORDER的总数量不能超过X个，超过X个则等成交后再来生成
             if need_balance_flag and exch_open_order_num<=self.__max_open_num:
@@ -281,8 +281,45 @@ class ExchAccountBal(object):
             print('资金池需要均衡')
         else:
             print('资金池不需要均衡')
-
+    '''检查COIN池'''
     '''检查资金池的状态，确定是不是需要均衡，返回True/False'''
+    def __check_coin_pool(self,market_base,market_vs,coin_code):
+        try:
+            order_base= ordermanage.OrderManage(market_base)
+            order_vs=ordermanage.OrderManage(market_vs)
+            #返回标志
+            result_flag=False
+            #只检查两个市场的RMB金额，默认coin是足够交易的
+            bal_base=float(order_base.getMyBalance('cny'))
+            bal_vs=float(order_vs.getMyBalance('cny'))
+            #检查coin的数量是不是满足当前市场是总市场容量的一半
+            bal_coin_base=float(order_base.getMyBalance(coin_code))
+            bal_coin_vs=float(order_vs.getMyBalance(coin_code))
+            #大概的交易价格
+            # vs的市场价格
+            price_vs = pricemanage.PriceManage(market_vs, coin_code).get_coin_price()
+            #币种 的阀值倍数
+            coiin_bal_times=5
+            #每次交易的单位数
+            trans_unit_per_time=self.__std_amount/price_vs.buy_cny
+            money_pool_amt=float(self.__std_amount*self.__money_pool_size)
+            total_coin_bal=(bal_coin_base+bal_coin_vs)
+            #资金量在3成以上才进行同步
+            if float(bal_base/(bal_base+bal_vs))>0.3 or float(bal_base)>float(money_pool_amt*0.8):
+                # 帐户低于总数的30%时进行均衡,只有总的币数大于每次交易的10倍 以上才进行均衡
+                if bal_coin_base/total_coin_bal<0.3 and total_coin_bal>trans_unit_per_time*10:
+                    result_flag=True
+        except Exception as e:
+            print(str(e))
+            print('获取资金池状态是否需要均衡时出错')
+        return result_flag
+        pass
+
+
+    def test_coin_pool(self):
+        coin_status=self.__check_coin_pool('bter','btc38','ltc')
+
+        '''检查资金池的状态，确定是不是需要均衡，返回True/False'''
     def __check_money_pool(self,market_base,market_vs,coin_code):
         try:
             order_base= ordermanage.OrderManage(market_base)
@@ -405,15 +442,16 @@ class ExchAccountBal(object):
 #test
 if __name__=='__main__':
     market_list=['btc38','bter']
-    coin_list=['doge']
+    coin_list=['doge','ltc']
     exchbal=ExchAccountBal(market_list,coin_list,10)
     exchbal.start()
 
     #exchbal.exch_balance('btc38','bter','doge')
     #exchbal.test_exch_balance()
-    #exchbal.single_balance_market('btc38','bter','doge')
+    #exchbal.single_balance_market('bter','btc38','ltc')
     #exchbal.test_check_balance_flag()
     #exchbal.test_check_exch_bal_status()
 
     #test
     #exchbal.test_check_money_pool()
+    #exchbal.test_coin_pool()
