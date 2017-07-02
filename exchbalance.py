@@ -5,7 +5,7 @@ __author__='Owen_Study/owen_study@126.com'
 
 import logging;logging.basicConfig(level=logging.INFO,filename='exchange_balance.log')
 import time
-import pricemanage,ordermanage
+import pricemanage,ordermanage,traderobot
 
 #TODO
 '''解决两个市场的资金池平衡'''
@@ -113,8 +113,43 @@ class ExchAccountBal(object):
             print('执行成功！')
         else:
             print('执行失败!')
+
     '''对指定的市场和coin进行平衡处理，返回True/False'''
     def exch_balance(self,market_base, market_vs, coin_code):
+        order_base = ordermanage.OrderManage(market_base)
+        order_vs = ordermanage.OrderManage(market_vs)
+        # base的市场价格
+        price_base = pricemanage.PriceManage(market_base, coin_code).get_coin_price()
+        # 需要对比的市场价格
+        price_vs = pricemanage.PriceManage(market_vs, coin_code).get_coin_price()
+        trans_price = self.__get_trans_price(price_base, price_vs, coin_code)
+        #TODO test purpose
+        #trans_price=0.01598
+        # 价格两个市场变动范围不在约定的范围 内则不返回价格，不需要进行交易
+        if trans_price == None:
+            return False
+        trans_amount=self.__std_amount*self.__exch_times
+        # 交易的单位是每次交易的X倍,
+        trans_units = self.__std_amount / trans_price * self.__exch_times
+
+        tradeapi=traderobot.TradeRobot()
+        trans_status=False
+        # 调用买入操作
+        buy_success = tradeapi.twin_trans(order_base, 'buy', coin_code, trans_units, trans_price)
+        if buy_success:
+            sell_success = tradeapi.twin_trans(order_vs, 'sell', coin_code, trans_units, trans_price)
+            # 目前的方案只要买入成功，则卖出订单不取消，只是检查状态当时有没有成交
+            if sell_success:
+                trans_status = True
+                logging.info('%s:均衡交易：成功,已经成功卖出:%s@%s,金额:%f,从市场@%s同样买入：当前成交！' \
+                             % (self.__get_curr_time(), coin_code, market_vs, trans_amount, market_base))
+            else:
+                logging.warning('%s:均衡交易(buyOrderId:%s）：在途,已经成功卖出:%s@%s,金额:%f,从市场@%s同样买入：当前未成交！' \
+                             % (self.__get_curr_time(),buy_order_id, coin_code, market_vs, trans_amount, market_base))
+        return trans_status
+        pass
+    '''对指定的市场和coin进行平衡处理，返回True/False'''
+    def exch_balanceX(self,market_base, market_vs, coin_code):
         order_base= ordermanage.OrderManage(market_base)
         order_vs=ordermanage.OrderManage(market_vs)
         # base的市场价格
@@ -373,6 +408,8 @@ if __name__=='__main__':
     coin_list=['doge']
     exchbal=ExchAccountBal(market_list,coin_list,10)
     exchbal.start()
+
+    #exchbal.exch_balance('btc38','bter','doge')
     #exchbal.test_exch_balance()
     #exchbal.single_balance_market('btc38','bter','doge')
     #exchbal.test_check_balance_flag()

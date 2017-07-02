@@ -85,7 +85,7 @@ class TradeRobot(object):
         self.__order_vs = ordermanage.OrderManage(test_market)
         self.__order_base = ordermanage.OrderManage(test_market)
         status_bter=False
-        status_bter = self.__twin_trans('buy', 'doge', 100, 0.05)
+        status_bter = self.twin_trans(self.__order_base,'buy', 'doge', 100, 0.05)
         print('test trans(SELL) exec result @%s:' % test_market)
         if status_bter:
             print('transaction done successfully!')
@@ -94,7 +94,7 @@ class TradeRobot(object):
         test_market = 'btc38'
         """
         self.__order_vs = ordermanage.OrderManage(test_market)
-        status_btc38 = self.__twin_trans('sell', 'doge', 1000, 0.05)
+        status_btc38 = self.twin_trans(self.__order_vs,'sell', 'doge', 1000, 0.05)
         print('test trans(SELL) exec result @%s:' % test_market)
         if status_btc38:
             print('transaction done successfully!')
@@ -104,7 +104,7 @@ class TradeRobot(object):
         #测试买入操作
         test_market='bter'
         self.__order_base = ordermanage.OrderManage(test_market)
-        status_bter=self.__twin_trans('buy','doge',200,0.012)
+        status_bter=self.twin_trans(self.__order_base,'buy','doge',200,0.012)
         print('test trans(BUY) exec result @%s:'%test_market)
         if status_bter:
             print('transaction done successfully!')
@@ -112,7 +112,7 @@ class TradeRobot(object):
             print('transaction failed!')
         test_market = 'btc38'
         self.__order_base = ordermanage.OrderManage(test_market)
-        status_btc38=self.__twin_trans('buy','doge',200,0.012)
+        status_btc38=self.twin_trans(self.__order_base,'buy','doge',200,0.012)
         print('test trans(BUY) exec result @%s:'%test_market)
         if status_btc38:
             print('transaction done successfully!')
@@ -125,7 +125,7 @@ class TradeRobot(object):
         order_market = self.__order_base
         sell_order=order_market.submitOrder('doge_cny','sell',0.03,150)
         sell_order_id=sell_order.order_id
-        resell_status=self.__twin_trans_sell_overtime_process(order_market,sell_order_id,'doge',0.01735,100)
+        resell_status=self.twin_trans_sell_overtime_process(order_market,sell_order_id,'doge',0.01735,100)
         pass
     '''卖出超时处理,重卖处理完成为非0,表示重卖降价次数'''
     def __twin_trans_sell_overtime_process(self,order_market,order_id,coin_code,origin_sell_price,trans_units):
@@ -181,12 +181,13 @@ class TradeRobot(object):
     @:parameter coin_code, trans coin code
     @:parameter trans_price, trans price
     """
-    def __twin_trans(self,trans_type,coin_code,trans_units,trans_price):
+    def twin_trans(self,order_market,trans_type,coin_code,trans_units,trans_price):
         # 默认交易是失败的，只有在满足特定的条件才算成功
         trans_succ_flag=False
         #max waitting seconds
         max_wait_seconds=8
         #Check trans type, sell or buy
+        """
         if trans_type=='buy':
             order_market=self.__order_base
         elif trans_type=='sell':
@@ -194,7 +195,7 @@ class TradeRobot(object):
         else:
             trans_succ_flag= False
             raise('Unknow trans_type:%s'%trans_type)
-
+        """
         trans_order=order_market.submitOrder(coin_code+'_cny',trans_type,trans_price,trans_units)
         order_id=trans_order.order_id
         #让服务器运行一会
@@ -266,9 +267,9 @@ class TradeRobot(object):
         self.__order_base = ordermanage.OrderManage(self.__market_base)
         self.__order_vs = ordermanage.OrderManage(self.__market_vs)
         # 调用买入操作
-        buy_success=self.__twin_trans('buy',self.__trans_coin_code,trans_units,buy_cny)
+        buy_success=self.twin_trans(self.__order_base,'buy',self.__trans_coin_code,trans_units,buy_cny)
         if buy_success:
-            sell_success=self.__twin_trans('sell',self.__trans_coin_code,trans_units,sell_cny)
+            sell_success=self.twin_trans(self.__order_vs,'sell',self.__trans_coin_code,trans_units,sell_cny)
             #目前的方案只要买入成功，则卖出订单不取消，只是检查状态当时有没有成交
             self.__trans_log()
             if sell_success:
