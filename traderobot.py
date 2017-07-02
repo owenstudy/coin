@@ -125,7 +125,7 @@ class TradeRobot(object):
         order_market = self.__order_base
         sell_order=order_market.submitOrder('doge_cny','sell',0.03,150)
         sell_order_id=sell_order.order_id
-        resell_status=self.twin_trans_sell_overtime_process(order_market,sell_order_id,'doge',0.01735,100)
+        resell_status=self.__twin_trans_sell_overtime_process(order_market,sell_order_id,'doge',0.01735,100)
         pass
     '''卖出超时处理,重卖处理完成为非0,表示重卖降价次数'''
     def __twin_trans_sell_overtime_process(self,order_market,order_id,coin_code,origin_sell_price,trans_units):
@@ -161,8 +161,13 @@ class TradeRobot(object):
                         new_order_id=new_order.order_id
                         #新提交订单的状态
                         new_order_status=order_market.getOrderStatus(new_order_id,coin_code)
+                    elif previous_order=='trans_done':
+                        new_order_status='closed'
+                        # 取消过程中发生的成交，并没有降价成交
+                        resell_times=resell_times-1
+                        print('在降价取消的过程，订单已经成交或已取消！')
                     else:
-                        print('订单降价过程中取消失败，可能系统已经成交!')
+                        print('订单降价过程中取消失败!')
                         cancel_fail_times=cancel_fail_times+1
                 pass
             pass
@@ -224,6 +229,9 @@ class TradeRobot(object):
                     if cancelorder=='success':
                         print('买入超时取消!')
                         trans_succ_flag=False
+                    # order finished when cancel
+                    elif cancelorder=='trans_done':
+                        trans_succ_flag = True
                     else:
                         #可能出现在取消的时候订单成交的情况，只能取消成功的订单才算取消，默认是成交了
                         trans_succ_flag = True
@@ -500,8 +508,8 @@ class TradeRobot(object):
 if __name__=='__main__':
     #price_base = pricemanage.PriceManage('bter', 'doge').get_coin_price()
     robot=TradeRobot(0.009)
-    robot.start()
-    #robot.test_twin_trans_sell_overtime()
+    #robot.start()
+    robot.test_twin_trans_sell_overtime()
     #twin trans test
     #robot.test_twin_trans()
 

@@ -70,6 +70,9 @@ class Client():
             cancelstatus=cancel[0].decode('utf8')
             if cancelstatus=='succ':
                 order_status='success'
+            #the order has done before cancel
+            elif cancelstatus=='no_record':
+                order_status='trans_done'
             else:
                 order_status = 'fail'
         except Exception as e:
@@ -170,8 +173,9 @@ if __name__=='__main__':
     print(cancel)
 """
     # test order status
-    order = btc38clt.submitOrder('doge_cny', 'sell', 0.03, 100)
+    order = btc38clt.submitOrder('doge_cny', 'sell', 0.014, 100)
     order_status=btc38clt.getOrderStatus(order.order_id,'doge')
+    cancel_order=btc38clt.cancelOrder(order.order_id,'doge')
 
 
     bal=btc38clt.getMyBalance('doge')

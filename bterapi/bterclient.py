@@ -72,7 +72,11 @@ class Client:
         if cancelstatus=='Success':
             format_cancelstatus='success'
         else:
-            format_cancelstatus='fail'
+            order_status=self.getOrderStatus(orderid,coincode)
+            if order_status=='closed':
+                format_cancelstatus='trans_done'
+            else:
+                format_cancelstatus='fail'
         return format_cancelstatus
 
 if __name__=='__main__':
@@ -85,8 +89,9 @@ if __name__=='__main__':
     #print(bal)
 
     # test order status
-    submitorder = bterclient.submitOrder('doge_cny', 'sell', 0.014, 100)
+    submitorder = bterclient.submitOrder('doge_cny', 'sell', 0.03, 100)
     order_status=bterclient.getOrderStatus(submitorder.order_id,'doge')
+    cancel_order=bterclient.cancelOrder(submitorder.order_id,'doge')
 
     #测试get open order list
     open_order_list=bterclient.getOpenOrderList('doge_cny')
