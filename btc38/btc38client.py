@@ -27,7 +27,7 @@ class Client():
         else:
             transtype=1
         coin,curr=pair.split('_')
-        order=self.btc38clt.submitOrder(transtype,curr,rate,round(amount,2),coin)
+        order=self.btc38clt.submitOrder(transtype,curr,rate,amount,coin)
         #return format b'[succ|123423]
         order2=order[0].decode('utf8').split('|')
         #避免直接成交没有 返回订单的情况
@@ -39,6 +39,7 @@ class Client():
         if len(order2)>=2:
             orderid=order2[1]
         else:
+            print('注意没有返回订单号，使用虚拟号代码，有可能发生错误')
             if orderstatus=='success':
                 #虚拟一个订单号,直接成功的订单，没有 返回定单号则给一个虚拟的订单号
                 orderid = 1111111
@@ -174,19 +175,10 @@ if __name__=='__main__':
     cancel=btc38clt.cancelOrder(367711369)
     print(cancel)
 """
-    __std_amount=100
-    market_base='btc38'
-    market_vs='bter'
-    coin_code='doge'
-    __exch_times=2
-    price_base = pricemanage.PriceManage(market_base, coin_code).get_coin_price()
-
-    # 需要对比的市场价格
-    price_vs = pricemanage.PriceManage(market_vs, coin_code).get_coin_price()
-    trans_price = float(0.0402)
-    trans_units = round(float(__std_amount / trans_price * __exch_times), 3)    # test order status
-    order = btc38clt.submitOrder('doge_cny', 'sell', trans_price, trans_units)
-    order_status=btc38clt.getOrderStatus(order.order_id,'doge')
+    order = btc38clt.submitOrder('doge_cny', 'sell', 0.01616, 100)
+    order_id=order.order_id
+    order2=btc38clt.submitOrder('doge_cny', 'buy', 0.01616, 100)
+    order_status=btc38clt.getOrderStatus(order2.order_id,'doge')
     cancel_order=btc38clt.cancelOrder(order.order_id,'doge')
 
 

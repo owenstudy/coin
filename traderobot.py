@@ -31,7 +31,9 @@ class TradeRobot(object):
         #每次投资的金额标准
         self.__std_amount=10
         #rounding num，根据币种得到交易单位的小数位
-        self.__rounding_num={'ltc':4, 'doge':2,'ppc':4}
+        #ltc的小数位只能<=3
+        self.__rounding_num={'ltc':3, 'doge':2,'ppc':4}
+        self.__price_rounding_num={'ltc':2, 'doge':4,'ppc':2}
 
         #价格检查次数
         self.__check_price_num=0
@@ -74,8 +76,13 @@ class TradeRobot(object):
         pass
 
     '''获取射程的rounding 位数，默认为2位'''
-    def get_rounding_num(self,coin_code):
-        return self.__rounding_num.get(coin_code,2)
+    def get_rounding_num(self,coin_code,priceflag=None):
+        if priceflag:
+            #价格的rounding规则
+            return self.__price_rounding_num.get(coin_code,3)
+        else:
+            #trans unit的rounding rule
+            return self.__rounding_num.get(coin_code,2)
 
     '''test twin_trans'''
     def test_twin_trans(self):
@@ -156,7 +163,7 @@ class TradeRobot(object):
                     previous_order=order_market.cancelOrder(new_order_id,coin_code)
                     if previous_order=='success':
                         #每次降低down_rate_step（0.002)
-                        new_sell_price=round(float(origin_sell_price*(1-down_rate_step*resell_times)),self.get_rounding_num(coin_code))
+                        new_sell_price=round(float(origin_sell_price*(1-down_rate_step*resell_times)),self.get_rounding_num(coin_code,'price'))
                         new_order=order_market.submitOrder(coin_code+'_cny','sell',new_sell_price,trans_units)
                         new_order_id=new_order.order_id
                         #新提交订单的状态
@@ -451,20 +458,23 @@ class TradeRobot(object):
 
     '''比例两个市场价格，确认是不是可以进行买卖操作,BASE市场是买入市场'''
     def __price_check(self,coin_code,base_price, vs_price):
-        #买入价格是当前市场上最低的卖方价格
-        buy_price=base_price.sell_cny
-        #卖出价格是当前市场上的最高买入价格
-        sell_price=vs_price.buy_cny
-        #价格盈利百分比
-        profitrate=(sell_price-buy_price)/buy_price
-        #调整费率需要从标准盈利率中考虑加进来
-        transfer_charge_rate=self.__transfer_charge_rate.get(coin_code,0)
-        #价格差异大于盈利标准则返回True
-        if profitrate>=self.__std_profit_rate+transfer_charge_rate:
-            return True
+        #价格非空时才进行检查
+        if not base_price and not vs_price:
+            #买入价格是当前市场上最低的卖方价格
+            buy_price=base_price.sell_cny
+            #卖出价格是当前市场上的最高买入价格
+            sell_price=vs_price.buy_cny
+            #价格盈利百分比
+            profitrate=(sell_price-buy_price)/buy_price
+            #调整费率需要从标准盈利率中考虑加进来
+            transfer_charge_rate=self.__transfer_charge_rate.get(coin_code,0)
+            #价格差异大于盈利标准则返回True
+            if profitrate>=self.__std_profit_rate+transfer_charge_rate:
+                return True
+            else:
+                return False
         else:
             return False
-
     '''检测两个市场可共用的coin列表'''
     def check_shared_coin_list(self,coinlist):
         #比较多个市场之间的价格

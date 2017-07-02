@@ -60,7 +60,12 @@ class Client:
                 if orderstatus.status!='open':
                     return_order_status='closed'
                 else:
-                    return_order_status='open'
+                    #部分成交的情况，认为是成功的，目前的接口不能保证部分成功的处理，只能默认为成功
+                    if orderstatus.amount<orderstatus.initial_amount:
+                        #return_order_status='partial_open'
+                        return_order_status='closed'
+                    else:
+                        return_order_status = 'open'
             except:
                 except_times=except_times+1
                 print('bter: Get order status has %d errors happened!'%except_times)
@@ -89,9 +94,11 @@ if __name__=='__main__':
     #print(bal)
 
     # test order status
-    submitorder = bterclient.submitOrder('doge_cny', 'sell', 0.03, 100)
-    order_status=bterclient.getOrderStatus(submitorder.order_id,'doge')
+    submitorder = bterclient.submitOrder('doge_cny', 'sell', 0.01617, 100)
+    submitorder2 = bterclient.submitOrder('doge_cny', 'buy', 0.01617, 200)
+    order_status=bterclient.getOrderStatus(submitorder2.order_id,'doge')
     cancel_order=bterclient.cancelOrder(submitorder.order_id,'doge')
+    #校验成交部分订单时的状态
 
     #测试get open order list
     open_order_list=bterclient.getOpenOrderList('doge_cny')
