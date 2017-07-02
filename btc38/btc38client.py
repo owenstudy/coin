@@ -18,6 +18,7 @@ class Client():
 
     #提交定单，只需要传入参数就直接执行
     #('doge_cny','sell',0.03,1000)
+    # 注意小数点的位数，太长的小数点会导致提交错误
     def submitOrder(self,pair, trade_type, rate, amount, connection=None, update_delay=None, error_handler=None):
         #btc38Client.submitOrder(2, 'cny', 0.03, 1000, 'doge')
         if trade_type=='sell':

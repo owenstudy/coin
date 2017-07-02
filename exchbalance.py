@@ -69,7 +69,7 @@ class ExchAccountBal(object):
                             #对COIN进行均衡
                             exch_status = self.single_balance_market(market_base,market_vs,coin)
                         bal_times=bal_times+1
-                        time.sleep(10)
+                        #time.sleep(10)
                         if bal_times%10==0:
                             print('%s: 执行了%d次均衡同步' % (self.__get_curr_time(), bal_times))
 
@@ -78,7 +78,7 @@ class ExchAccountBal(object):
     '''得到市场价格的趋势，上升还是下降,返回True-上长'''
     def __price_rising_trend(self,coin_code):
         # TODO 先手工处理，需要 根据价格趋势进行判断
-        return False
+        return True
 
     '''指定交易价格'''
     def __get_trans_price(self,price_base, price_vs, coin_code):
@@ -130,7 +130,8 @@ class ExchAccountBal(object):
             return False
         trans_amount=self.__std_amount*self.__exch_times
         # 交易的单位是每次交易的X倍,
-        trans_units = self.__std_amount / trans_price * self.__exch_times
+        # 要非常 小心 这里面的小数位，需要BTC38的接口小数位数太长会报错，接口太SB了， 不知道自己处理一下
+        trans_units = round(self.__std_amount / trans_price * self.__exch_times,traderobot.TradeRobot.get_rounding_num(coin_code))
 
         tradeapi=traderobot.TradeRobot()
         trans_status=False
@@ -144,8 +145,8 @@ class ExchAccountBal(object):
                 logging.info('%s:均衡交易：成功,已经成功卖出:%s@%s,金额:%f,从市场@%s同样买入：当前成交！' \
                              % (self.__get_curr_time(), coin_code, market_vs, trans_amount, market_base))
             else:
-                logging.warning('%s:均衡交易(buyOrderId:%s）：在途,已经成功卖出:%s@%s,金额:%f,从市场@%s同样买入：当前未成交！' \
-                             % (self.__get_curr_time(),buy_order_id, coin_code, market_vs, trans_amount, market_base))
+                logging.warning('%s:均衡交易：在途,已经成功卖出:%s@%s,金额:%f,从市场@%s同样买入：当前未成交！' \
+                             % (self.__get_curr_time(), coin_code, market_vs, trans_amount, market_base))
         return trans_status
         pass
     '''对指定的市场和coin进行平衡处理，返回True/False'''
