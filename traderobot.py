@@ -31,7 +31,7 @@ class TradeRobot(object):
         #每次投资的金额标准
         self.__std_amount=10
         #rounding num，根据币种得到交易单位的小数位
-        self.__rounding_num={'ltc':4, 'doge':2,'ppc':3}
+        self.__rounding_num={'ltc':4, 'doge':2,'ppc':4}
 
         #价格检查次数
         self.__check_price_num=0

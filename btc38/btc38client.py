@@ -94,12 +94,34 @@ class Client():
             open_order_list.append(open_order_item)
         return open_order_list
         pass
+    #得到某个order的状态
+    def getOrderStatus(self,orderid,coin_code=None):
+        except_times=0
+        max_except_times=5
+        return_order_status=None
+        # If there is exception then continue to redo so that we can get correct order status
+        while(except_times<max_except_times and return_order_status==None):
+            try:
+                data = self.btc38clt.getOrderList(coin_code)
+                for order in data:
+                    # 查找到有订单则说明没有 成交，是open状态，其它为closed，cancel也认为是closed
+                    if int(order.get('id')) == int(orderid):
+                        return_order_status='open'
+                        break
+                # Default to closed if cannot find in the open list
+                if return_order_status==None:
+                    return_order_status='closed'
+            except:
+                except_times=except_times+1
+                print('btc38: Get order status has %d errors happened!' % except_times)
+
+        return return_order_status
 
     #取得订单状态
-    def getOrderStatus(self,orderid,coin_code=None):
+    def getOrderStatusX(self,orderid,coin_code=None):
         #
+
         try:
-            time.sleep(1)
             data=self.btc38clt.getOrderList(coin_code)
             #orderstatus=b'[{"order_id":"123", "order_type":"1", "order_coinname":"BTC", "order_amount":"23.232323", "order_price":"0.2929"}, {"order_id":"123", "order_type":"1", "order_coinname":"LTC","order_amount":"23.232323", "order_price":"0.2929"}]'
             #TODO 需要找出指定订单的状态
@@ -147,6 +169,11 @@ if __name__=='__main__':
     cancel=btc38clt.cancelOrder(367711369)
     print(cancel)
 """
+    # test order status
+    order = btc38clt.submitOrder('doge_cny', 'sell', 0.03, 100)
+    order_status=btc38clt.getOrderStatus(order.order_id,'doge')
+
+
     bal=btc38clt.getMyBalance('doge')
     print(bal)
 

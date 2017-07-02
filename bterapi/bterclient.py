@@ -49,13 +49,23 @@ class Client:
 
     #得到某个order的状态
     def getOrderStatus(self,orderid,coin_code=None):
-        try:
-            orderstatus=self.tradeapi.getOrderStatus(orderid)
-            return orderstatus.status
-        except:
-            #出现订单已经 成交查询不到状态的时候默认为closed
-            return 'closed'
-            pass
+        except_times=0
+        max_except_times=5
+        return_order_status=None
+        # If there is exception then continue to redo so that we can get correct order status
+        while(except_times<max_except_times and return_order_status==None):
+            try:
+                orderstatus=self.tradeapi.getOrderStatus(orderid)
+                # Only have two status, open or closed(including cancelled)
+                if orderstatus.status!='open':
+                    return_order_status='closed'
+                else:
+                    return_order_status='open'
+            except:
+                except_times=except_times+1
+                print('bter: Get order status has %d errors happened!'%except_times)
+
+        return return_order_status
     #取消定单, coincode just for format which is same for both markets
     def cancelOrder(self,orderid,coincode=None):
         cancelstatus= self.tradeapi.cancelOrder(orderid)
@@ -73,6 +83,10 @@ if __name__=='__main__':
     #submitorder=bterclient.submitOrder('doge_cny','sell',0.03,100)
     #print(submitorder.order_id)
     #print(bal)
+
+    # test order status
+    submitorder = bterclient.submitOrder('doge_cny', 'sell', 0.014, 100)
+    order_status=bterclient.getOrderStatus(submitorder.order_id,'doge')
 
     #测试get open order list
     open_order_list=bterclient.getOpenOrderList('doge_cny')
