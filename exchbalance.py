@@ -122,7 +122,7 @@ class ExchAccountBal(object):
         price_base = pricemanage.PriceManage(market_base, coin_code).get_coin_price()
         # 需要对比的市场价格
         price_vs = pricemanage.PriceManage(market_vs, coin_code).get_coin_price()
-        trans_price = self.__get_trans_price(price_base, price_vs, coin_code)
+        trans_price = float(self.__get_trans_price(price_base, price_vs, coin_code))
         #TODO test purpose
         #trans_price=0.01598
         # 价格两个市场变动范围不在约定的范围 内则不返回价格，不需要进行交易
@@ -131,9 +131,10 @@ class ExchAccountBal(object):
         trans_amount=self.__std_amount*self.__exch_times
         # 交易的单位是每次交易的X倍,
         # 要非常 小心 这里面的小数位，需要BTC38的接口小数位数太长会报错，接口太SB了， 不知道自己处理一下
-        trans_units = round(self.__std_amount / trans_price * self.__exch_times,traderobot.TradeRobot.get_rounding_num(coin_code))
+        robot=traderobot.TradeRobot()
+        trans_units = round(float(self.__std_amount / trans_price * self.__exch_times),robot.get_rounding_num(coin_code))
 
-        tradeapi=traderobot.TradeRobot()
+        tradeapi=robot
         trans_status=False
         # 调用买入操作
         buy_success = tradeapi.twin_trans(order_base, 'buy', coin_code, trans_units, trans_price)
@@ -142,6 +143,8 @@ class ExchAccountBal(object):
             # 目前的方案只要买入成功，则卖出订单不取消，只是检查状态当时有没有成交
             if sell_success:
                 trans_status = True
+                print('%s:均衡交易：成功,已经成功卖出:%s@%s,金额:%f,从市场@%s同样买入：当前成交！' \
+                             % (self.__get_curr_time(), coin_code, market_vs, trans_amount, market_base))
                 logging.info('%s:均衡交易：成功,已经成功卖出:%s@%s,金额:%f,从市场@%s同样买入：当前成交！' \
                              % (self.__get_curr_time(), coin_code, market_vs, trans_amount, market_base))
             else:
@@ -447,7 +450,7 @@ if __name__=='__main__':
     exchbal=ExchAccountBal(market_list,coin_list,10)
     exchbal.start()
 
-    #exchbal.exch_balance('btc38','bter','doge')
+    #exchbal.exch_balance('btc38','bter','ltc')
     #exchbal.test_exch_balance()
     #exchbal.single_balance_market('bter','btc38','ltc')
     #exchbal.test_check_balance_flag()

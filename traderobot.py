@@ -74,7 +74,7 @@ class TradeRobot(object):
         pass
 
     '''获取射程的rounding 位数，默认为2位'''
-    def __get_rounding_num(self,coin_code):
+    def get_rounding_num(self,coin_code):
         return self.__rounding_num.get(coin_code,2)
 
     '''test twin_trans'''
@@ -156,7 +156,7 @@ class TradeRobot(object):
                     previous_order=order_market.cancelOrder(new_order_id,coin_code)
                     if previous_order=='success':
                         #每次降低down_rate_step（0.002)
-                        new_sell_price=origin_sell_price*(1-down_rate_step*resell_times)
+                        new_sell_price=round(float(origin_sell_price*(1-down_rate_step*resell_times)),self.get_rounding_num(coin_code))
                         new_order=order_market.submitOrder(coin_code+'_cny','sell',new_sell_price,trans_units)
                         new_order_id=new_order.order_id
                         #新提交订单的状态
@@ -270,7 +270,7 @@ class TradeRobot(object):
         trans_success=False
         buy_cny=self.__price_base.sell_cny
         sell_cny=self.__price_vs.buy_cny
-        rounding_num=self.__get_rounding_num(self.__trans_coin_code)
+        rounding_num=self.get_rounding_num(self.__trans_coin_code)
         trans_units=round(self.__std_amount/buy_cny,rounding_num)
         self.__order_base = ordermanage.OrderManage(self.__market_base)
         self.__order_vs = ordermanage.OrderManage(self.__market_vs)
@@ -436,7 +436,7 @@ class TradeRobot(object):
         profitrate=float((sell_price-buy_price)/buy_price)
         buy_cny=float(self.__price_base.sell_cny)
         sell_cny=float(self.__price_vs.buy_cny)
-        rounding_num=self.__get_rounding_num(self.__trans_coin_code)
+        rounding_num=self.get_rounding_num(self.__trans_coin_code)
         trans_units=float(round(self.__std_amount/buy_cny,rounding_num))
         currtime=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
         try:

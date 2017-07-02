@@ -3,6 +3,7 @@ import btc38.client
 import urlaccess
 import json,time
 import openorderlist
+import pricemanage
 
 '''统一接口'''
 #test api transaction
@@ -173,8 +174,18 @@ if __name__=='__main__':
     cancel=btc38clt.cancelOrder(367711369)
     print(cancel)
 """
-    # test order status
-    order = btc38clt.submitOrder('doge_cny', 'sell', 0.014, 100)
+    __std_amount=100
+    market_base='btc38'
+    market_vs='bter'
+    coin_code='doge'
+    __exch_times=2
+    price_base = pricemanage.PriceManage(market_base, coin_code).get_coin_price()
+
+    # 需要对比的市场价格
+    price_vs = pricemanage.PriceManage(market_vs, coin_code).get_coin_price()
+    trans_price = float(0.0402)
+    trans_units = round(float(__std_amount / trans_price * __exch_times), 3)    # test order status
+    order = btc38clt.submitOrder('doge_cny', 'sell', trans_price, trans_units)
     order_status=btc38clt.getOrderStatus(order.order_id,'doge')
     cancel_order=btc38clt.cancelOrder(order.order_id,'doge')
 
