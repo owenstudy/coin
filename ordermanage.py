@@ -33,6 +33,12 @@ class OrderManage:
     #订单open列表
     def getOpenOrderList(self,coin_code_pair):
         return self.clientapi.getOpenOrderList(coin_code_pair)
+    #市场深度
+    def getMarketDepth(self,coin_code_pair):
+        coin_code=coin_code_pair.split('_')[0]
+        market_type=coin_code_pair.split('_')[1]
+        return self.clientapi.getMarketDepth(coin_code,market_type)
+
 #test
 if __name__=='__main__':
     """

@@ -1,7 +1,7 @@
 
 import btc38.client
 import urlaccess
-import json,time
+import json,time,datetime
 import openorderlist
 import pricemanage
 
@@ -149,6 +149,20 @@ class Client():
             order_status='open'
         finally:
             return order_status
+    '''得到市场的深度'''
+    def getMarketDepth(self,coin_code,mk_type='cny'):
+        try:
+            data = self.btc38clt.getDepth(mk_type,coin_code)
+            # 买单列表
+            buylist=list(data.get('bids'))
+            # 卖单列表
+            selllist=list(data.get('asks'))
+
+            depthlist=urlaccess.JSONObject({'date':datetime.datetime.now(),'sell':selllist,'buy':buylist})
+        except Exception as e:
+            print(str(e))
+            depthlist= None
+        return depthlist
 
 if __name__=='__main__':
     client = Client()
@@ -175,6 +189,11 @@ if __name__=='__main__':
     cancel=btc38clt.cancelOrder(367711369)
     print(cancel)
 """
+    #测试市场尝试
+    market_depht=btc38clt.getMarketDepth('doge','cny')
+    for buy in market_depht.buy:
+        print(buy)
+
     order = btc38clt.submitOrder('doge_cny', 'sell', 0.01616, 100)
     order_id=order.order_id
     order2=btc38clt.submitOrder('doge_cny', 'buy', 0.01616, 100)

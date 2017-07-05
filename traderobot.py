@@ -21,7 +21,7 @@ class TradeRobot(object):
         #可以使用的列表
         #'xrp','ltc','doge','xpm','nxt','bts','ppc','dash'
         #可工作列表  'doge','xrp','ltc'
-        self.__coin_list=['doge','ltc','ppc']
+        self.__coin_list=['doge','ltc','ppc','xrp']
         #盈利操作的起点
         self.__std_profit_rate=std_profit_rate
         #原始的盈利水平，因为仓位会调整标准 的盈利比例
@@ -459,7 +459,7 @@ class TradeRobot(object):
     '''比例两个市场价格，确认是不是可以进行买卖操作,BASE市场是买入市场'''
     def __price_check(self,coin_code,base_price, vs_price):
         #价格非空时才进行检查
-        if not base_price and not vs_price:
+        if  base_price!=None and vs_price!=None:
             #买入价格是当前市场上最低的卖方价格
             buy_price=base_price.sell_cny
             #卖出价格是当前市场上的最高买入价格
