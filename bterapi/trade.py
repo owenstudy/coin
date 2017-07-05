@@ -70,7 +70,15 @@ class TradeAPI(object):
 
         # We depend on the key handler for the secret
         self.secret = handler.getSecret(key)
+    # 获取价格测试
+    def get_price(self,coin_pair):
+        connection = common.BTERConnection()
+        result = connection.makeJSONRequest('/api/1/ticker/' + coin_pair, method='GET',
+                                            extra_headers={}, params=None)
 
+        return common.validateResponse(result, error_handler=None)
+
+        pass
     def _post(self, api_method, params=None, connection=None, error_handler=None):
         if params is None:
             params = {'nonce': datetime.now().microsecond}
@@ -152,3 +160,6 @@ class TradeAPI(object):
 
         return result
 
+# test
+if __name__=='__main__':
+    x=TradeAPI()

@@ -54,6 +54,7 @@ class Client():
     #pair e.g. doge_cny
     def getMyBalance(self,coin=None):
         try:
+            coinbal=None
             bal=self.btc38clt.getMyBalance()
             if coin:
                 coinbal=float(bal[coin+'_balance'])

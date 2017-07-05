@@ -386,16 +386,17 @@ class TradeRobot(object):
                 #对每个coin进行分析
                 for coin in self.__coin_list:
                     #base的市场价格
+                    #print('%s:is requesting price@%s' % (self.__get_curr_time(),market_base))
                     price_base=pricemanage.PriceManage(market_base,coin).get_coin_price()
                     #需要对比的市场价格
+                    #print('%s:is requesting price@%s' % (self.__get_curr_time(),market_vs))
                     price_vs=pricemanage.PriceManage(market_vs,coin).get_coin_price()
-
+                   # print('%s:is comparing price'%self.__get_curr_time())
                     price_check_result=self.__price_check(coin,price_base,price_vs)
 
                     self.__check_price_num=self.__check_price_num+1
-                    currtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
                     if self.__check_price_num % 10 == 0:
-                        print('%s: 已经检查了%d次的价格' % (currtime, self.__check_price_num))
+                        print('%s: 已经检查了%d次的价格' % (self.__get_curr_time(), self.__check_price_num))
 
                     # TODO for testing
                     #price_check_result=True
@@ -421,8 +422,11 @@ class TradeRobot(object):
                               %(self.__get_curr_time(),coin,market_base,market_vs,price_base.sell_cny,price_vs.buy_cny,self.__std_amount,profitamt))
                         #开始处理交易
                         # 检查帐户的仓位并调整相应的盈利比例
-                        if self.__check_account():
+                        #print('%s: is checking account balance'%self.__get_curr_time())
+                        account_balance=self.__check_account()
+                        if account_balance:
                             #检查帐户的仓位并调整相应的盈利比例
+                            print('%s: is doing transaction.'%self.__get_curr_time())
                             trans_status=self.__trans_apply()
                             if trans_status:
                                 print('交易成功!')

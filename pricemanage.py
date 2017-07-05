@@ -7,6 +7,8 @@ __author__='Owen_Study/owen_study@126.com'
 import time
 import urlaccess
 import traceback
+import common
+import bterapi.bterclient
 
 '''价格管理类，根据传入的市场名称和coin获取对应的价格信息'''
 class PriceManage(object):
@@ -28,12 +30,33 @@ class PriceManage(object):
             raise Exception('Unknown market:%s' % self.__market)
         pass
 
-    '''返回bter市场的价格'''
     def __set_bter_price(self):
+        bterprice=bterapi.bterclient.Client()
+        pricedata_cny=bterprice.getPrice(self.__coincode + '_cny')
+        try:
+            if pricedata_cny.get('result')=='true':
+                # cny价格的信息
+                sell_cny = float(pricedata_cny.get('sell'))
+                buy_cny = float(pricedata_cny.get('buy'))
+                last_cny = float(pricedata_cny.get('last'))
+                self.coin_price=CoinPrice(self.__coincode,buy_cny,sell_cny)
+            else:
+                print('获取价格错误:%s'%pricedata_cny.message)
+        except Exception as e:
+            exstr = traceback.format_exc()
+            print(exstr)
+            print(pricedata_cny)
+            print(str(e))
+
+        pass
+
+    '''返回bter市场的价格'''
+    def __set_bter_price_BAD(self):
         base_url = 'http://data.bter.com/api/1/ticker/'
         url_cny = base_url + self.__coincode + '_cny'
         url_btc = base_url + self.__coincode + '_btc'
         # 获取价格的JSONObject数据
+        print('%s: is calling urlaccess.geturldata@bter'%common.CommonFunction.get_curr_time())
         pricedata_cny = urlaccess.geturldata(url_cny)
         try:
             if pricedata_cny.result=='true':
@@ -55,6 +78,7 @@ class PriceManage(object):
         url_cny = base_url + self.__coincode + '&mk_type=cny'
         url_btc = base_url + self.__coincode + '&mk_type=btc'
         # 获取价格的JSONObject数据
+        #print('%s: is calling urlaccess.geturldata@btc38' % common.CommonFunction.get_curr_time())
         pricedata_cny = urlaccess.geturldata(url_cny)
         # cny价格的信息
         try:

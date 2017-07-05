@@ -83,7 +83,10 @@ class Client:
             else:
                 format_cancelstatus='fail'
         return format_cancelstatus
-
+    # get price
+    def getPrice(self,coin_pair):
+        pricedata=self.tradeapi.get_price(coin_pair)
+        return pricedata
 if __name__=='__main__':
     bterclient=Client()
     #获取帐户余额
@@ -92,6 +95,8 @@ if __name__=='__main__':
     #submitorder=bterclient.submitOrder('doge_cny','sell',0.03,100)
     #print(submitorder.order_id)
     #print(bal)
+
+    price=bterclient.getPrice('doge_cny')
 
     # test order status
     submitorder = bterclient.submitOrder('doge_cny', 'sell', 0.01617, 100)
