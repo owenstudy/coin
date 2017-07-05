@@ -7,9 +7,9 @@ import pricemanage
 
 '''统一接口'''
 #test api transaction
-key='47ae44f72c3a93dd33e6177142189071'
-secret='f68d9ca86eb175d93d4f992642197b1c7ba555b0e9bb747d989f91ccc3cdeed1'
-accountid=43237
+key=''
+secret=''
+accountid=''
 
 
 class Client():
