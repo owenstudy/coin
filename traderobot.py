@@ -27,7 +27,7 @@ class TradeRobot(object):
         #原始的盈利水平，因为仓位会调整标准 的盈利比例
         self.__std_profit_rate_bk=std_profit_rate
         #coin在市场之间传送的费用，有的是免费的，有的是收费的,需要地看各个市场的情况进行初始化
-        self.__transfer_charge_rate={'ltc':0.004,'doge':0,'xpm':0,'ppc':0}
+        self.__transfer_charge_rate={'ltc':0.002,'doge':0,'xpm':0.002,'ppc':0.001}
         #每次投资的金额标准
         self.__std_amount=10
         #rounding num，根据币种得到交易单位的小数位
@@ -426,7 +426,7 @@ class TradeRobot(object):
                         account_balance=self.__check_account()
                         if account_balance:
                             #检查帐户的仓位并调整相应的盈利比例
-                            print('%s: is doing transaction.'%self.__get_curr_time())
+                            #print('%s: is doing transaction.'%self.__get_curr_time())
                             trans_status=self.__trans_apply()
                             if trans_status:
                                 print('交易成功!')

@@ -5,5 +5,5 @@ __author__='Owen_Study/owen_study@126.com'
 
 import traderobot
 
-robot = traderobot.TradeRobot(0.009)
+robot = traderobot.TradeRobot(0.012)
 robot.start()

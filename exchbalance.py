@@ -37,7 +37,7 @@ class ExchAccountBal(object):
         #自动均衡的POOL的大小，是每次交易的整数倍
         self.__money_pool_size=100
         #自动进行资金池均衡的coin
-        self.__money_pool_coin='doge'
+        self.__money_pool_coin=['ltc','doge']
         #均衡时两个市场价格的差异比例，如0.005
         self.__money_pool_price_rate_diff=0.003
         pass
@@ -62,7 +62,7 @@ class ExchAccountBal(object):
                         self.__order_base = ordermanage.OrderManage(self.__market_base)
                         self.__order_vs = ordermanage.OrderManage(self.__market_vs)
                         #开始处理帐户对倒,
-                        if coin==self.__money_pool_coin:
+                        if coin in self.__money_pool_coin:
                             #对资金池进行均衡
                             exch_status = self.single_balance_market(market_base, market_vs, coin,'Y')
                         else:
@@ -114,6 +114,26 @@ class ExchAccountBal(object):
         else:
             print('执行失败!')
 
+    '''比例两个市场价格，确认是不是可以进行买卖操作,BASE市场是买入市场'''
+
+    def __price_check(self, coin_code, base_price, vs_price):
+        # 价格非空时才进行检查
+        if base_price != None and vs_price != None:
+            # 买入价格是当前市场上最低的卖方价格
+            buy_price = base_price.sell_cny
+            # 卖出价格是当前市场上的最高买入价格
+            sell_price = vs_price.buy_cny
+            # 价格盈利百分比
+            profitrate = (sell_price - buy_price) / buy_price
+            # 调整费率需要从标准盈利率中考虑加进来
+            transfer_charge_rate = 0.001
+            # 价格差异大于盈利标准则返回True
+            if profitrate >= transfer_charge_rate:
+                return True
+            else:
+                return False
+        else:
+            return False
     '''对指定的市场和coin进行平衡处理，返回True/False'''
     def exch_balance(self,market_base, market_vs, coin_code):
         order_base = ordermanage.OrderManage(market_base)
@@ -122,24 +142,32 @@ class ExchAccountBal(object):
         price_base = pricemanage.PriceManage(market_base, coin_code).get_coin_price()
         # 需要对比的市场价格
         price_vs = pricemanage.PriceManage(market_vs, coin_code).get_coin_price()
-        trans_price = float(self.__get_trans_price(price_base, price_vs, coin_code))
+        #trans_price = float(self.__get_trans_price(price_base, price_vs, coin_code))
+
+        match_price_flag=self.__price_check(coin_code,price_base,price_vs)
+        #在约定的范围价格变动范围之内
+        if match_price_flag:
+            trans_price_buy=price_base.sell_cny
+            trans_price_sell=price_vs.buy_cny
+        else:
+            return False
         #TODO test purpose
         #trans_price=0.01598
         # 价格两个市场变动范围不在约定的范围 内则不返回价格，不需要进行交易
-        if trans_price == None:
-            return False
+        #if trans_price == None:
+        #    return False
         trans_amount=self.__std_amount*self.__exch_times
         # 交易的单位是每次交易的X倍,
         # 要非常 小心 这里面的小数位，需要BTC38的接口小数位数太长会报错，接口太SB了， 不知道自己处理一下
         robot=traderobot.TradeRobot()
-        trans_units = round(float(self.__std_amount / trans_price * self.__exch_times),robot.get_rounding_num(coin_code))
+        trans_units = round(float(self.__std_amount / trans_price_buy * self.__exch_times),robot.get_rounding_num(coin_code))
 
         tradeapi=robot
         trans_status=False
         # 调用买入操作
-        buy_success = tradeapi.twin_trans(order_base, 'buy', coin_code, trans_units, trans_price)
+        buy_success = tradeapi.twin_trans(order_base, 'buy', coin_code, trans_units, trans_price_buy)
         if buy_success:
-            sell_success = tradeapi.twin_trans(order_vs, 'sell', coin_code, trans_units, trans_price)
+            sell_success = tradeapi.twin_trans(order_vs, 'sell', coin_code, trans_units, trans_price_sell)
             # 目前的方案只要买入成功，则卖出订单不取消，只是检查状态当时有没有成交
             if sell_success:
                 trans_status = True
@@ -445,8 +473,8 @@ class ExchAccountBal(object):
         pass
 #test
 if __name__=='__main__':
-    market_list=['btc38','bter']
-    coin_list=['doge','ltc']
+    market_list=['bter','btc38']
+    coin_list=['xrp','ltc','doge']
     exchbal=ExchAccountBal(market_list,coin_list,10)
     exchbal.start()
 

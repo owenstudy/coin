@@ -7,13 +7,14 @@ import pricemanage
 
 '''统一接口'''
 #test api transaction
-key=''
-secret=''
-accountid=''
+key='47ae44f72c3a93dd33e6177142189071'
+secret='f68d9ca86eb175d93d4f992642197b1c7ba555b0e9bb747d989f91ccc3cdeed1'
+accountid=43237
 
 
 class Client():
     def __init__(self):
+        #获取API信息
         self.btc38clt = btc38.client.Client(key, secret, accountid)
         pass
 
@@ -164,6 +165,11 @@ class Client():
             print(str(e))
             depthlist= None
         return depthlist
+    # 取得价格信息
+    def getPrice(self,coin_pair):
+        price=self.btc38clt.getTickers(coin_pair.split('_')[1],coin_pair.split('_')[0])
+        priceobj = urlaccess.JSONObject(price)
+        return priceobj
 
 if __name__=='__main__':
     client = Client()

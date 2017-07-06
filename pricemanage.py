@@ -8,7 +8,7 @@ import time
 import urlaccess
 import traceback
 import common
-import bterapi.bterclient
+import bterapi.bterclient,btc38.btc38client
 
 '''价格管理类，根据传入的市场名称和coin获取对应的价格信息'''
 class PriceManage(object):
@@ -72,14 +72,29 @@ class PriceManage(object):
             print(exstr)
             print(pricedata_cny)
             print(str(e))
-    '''返回btc38市场的价格'''
+
     def __set_btc38_price(self):
+        btc38clt=btc38.btc38client.Client()
+        pricedata_cny=btc38clt.getPrice(self.__coincode + '_cny')
+        # cny价格的信息
+        try:
+            sell_cny = pricedata_cny.ticker.get('sell')
+            buy_cny = pricedata_cny.ticker.get('buy')
+            last_cny = pricedata_cny.ticker.get('last')
+            self.coin_price=CoinPrice(self.__coincode,buy_cny,sell_cny)
+        except Exception as e:
+            print(pricedata_cny)
+            print(str(e))
+
+    '''返回btc38市场的价格'''
+    def __set_btc38_price_BAD(self):
         base_url = 'http://api.btc38.com/v1/ticker.php?c='
         url_cny = base_url + self.__coincode + '&mk_type=cny'
         url_btc = base_url + self.__coincode + '&mk_type=btc'
         # 获取价格的JSONObject数据
         #print('%s: is calling urlaccess.geturldata@btc38' % common.CommonFunction.get_curr_time())
         pricedata_cny = urlaccess.geturldata(url_cny)
+
         # cny价格的信息
         try:
             sell_cny = pricedata_cny.ticker.sell
