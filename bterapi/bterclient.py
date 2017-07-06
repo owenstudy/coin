@@ -30,7 +30,16 @@ class Client:
                     coinbal=None
 
             else:
-                coinbal=bal
+                # only 返回有值的列表#, 所有的都返回，把值转换成数字
+                coin_list=list(bal.keys())
+                for coin in coin_list:
+                    #if float(bal[coin]['available'])>0:
+                    bal[coin]['available']=float(bal[coin]['available'])
+                    bal[coin]['locked'] = float(bal[coin]['locked'])
+                    pass
+                    #else:
+                    #    del bal[coin]
+                coinbal = bal
         except Exception as e:
             print(str(e))
             print('获取BTER余额异常！')

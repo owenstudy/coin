@@ -60,9 +60,19 @@ class Client():
             if coin:
                 coinbal=float(bal[coin+'_balance'])
             else:
-                coinbal=bal
-            #print(bal)
-            pass
+                # 统一格式，风格统一{'doge'：{available:22,locked:2234}},{...}
+                coin_list=[]
+                for coin in bal.keys():
+                    coin_list.append(coin.split('_')[0])
+                coin_list=list(set(coin_list))
+                all_balance={}
+                for coin in coin_list:
+                    coin_balance=float(bal.get(coin+'_balance'))
+                    coin_balance_lock=float(bal.get(coin+'_balance_lock'))
+                    #if coin_balance>0:
+                    all_balance[coin]={'available':coin_balance,'locked':coin_balance_lock}
+                #print(all_balance)
+                return all_balance
         except Exception as e:
             print(str(e))
             print('检查IP地址是不是加入了白名单！')
