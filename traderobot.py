@@ -8,7 +8,7 @@ __author__='Owen_Study/owen_study@126.com'
 import logging;logging.basicConfig(level=logging.INFO,filename='translog.log')
 import time,os,traceback
 import ordermanage
-import pricemanage,sharedmarketcoin
+import pricemanage,sharedmarketcoin,dailysummary
 
 class TradeRobot(object):
     '''自动侦测并进行交易，如果有指定盈利比例则按指定的标准进行，否则自动计算'''
@@ -58,6 +58,10 @@ class TradeRobot(object):
                 currtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
                 if processnum % 10 == 0:
                     print('%s: 已经处理了:%d次' % (currtime,processnum))
+                if processnum%100==0:
+                    # 打印帐户当前余额
+                    summary=dailysummary.DailySummary(self.__market_list)
+
                 processnum = processnum + 1
         pass
 
@@ -77,7 +81,12 @@ class TradeRobot(object):
                 print(exstr)
                 print('%d 次process error!' % processnum)
         pass
-
+    '''是否超过最大的卖出失败次数'''
+    def over_max_fail(self):
+        if self.__sell_fail_times>=self.__max_sell_fail_times:
+            return True
+        else:
+            return False
     '''获取射程的rounding 位数，默认为2位'''
     def get_rounding_num(self,coin_code,priceflag=None):
         if priceflag:
@@ -257,7 +266,7 @@ class TradeRobot(object):
                             print('降价卖出时错误，请人工检查卖出情况!')
                             trans_succ_flag = False
         except Exception as e:
-            print('%s:操作异常@:%s'%(trans_type,order_market))
+            print('%s:操作异常@:%s'%(trans_type,order_market.market))
             print(str(e))
 
         return trans_succ_flag
@@ -534,7 +543,7 @@ class TradeRobot(object):
 if __name__=='__main__':
     #price_base = pricemanage.PriceManage('bter', 'doge').get_coin_price()
     robot=TradeRobot(0.009)
-    robot.start()
+    #robot.start()
     #robot.test_twin_trans_sell_overtime()
     #twin trans test
     #robot.test_twin_trans()
