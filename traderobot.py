@@ -34,7 +34,10 @@ class TradeRobot(object):
         #ltc的小数位只能<=3
         self.__rounding_num={'ltc':3, 'doge':2,'ppc':4}
         self.__price_rounding_num={'ltc':2, 'doge':4,'ppc':2}
-
+        # 卖出的失败次数
+        self.__sell_fail_times=0
+        # 允许卖出失败的最大次数
+        self.__max_sell_fail_times=10
         #价格检查次数
         self.__check_price_num=0
         pass
@@ -51,7 +54,7 @@ class TradeRobot(object):
                 print(str(e))
                 print('%d 次process error!' % processnum)
             finally:
-                time.sleep(0.1)
+                time.sleep(0.5)
                 currtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
                 if processnum % 10 == 0:
                     print('%s: 已经处理了:%d次' % (currtime,processnum))
@@ -208,50 +211,55 @@ class TradeRobot(object):
             trans_succ_flag= False
             raise('Unknow trans_type:%s'%trans_type)
         """
-        trans_order=order_market.submitOrder(coin_code+'_cny',trans_type,trans_price,trans_units)
-        order_id=trans_order.order_id
-        #让服务器运行一会
-        time.sleep(0.1)
-        order_status=order_market.getOrderStatus(order_id,coin_code)
-        if order_status=='closed':
-            trans_succ_flag=True
-        else:
-            #todo循环处理，直到成功
-            waitseconds = 0
-            while (waitseconds < max_wait_seconds):
-                #每1秒检查 一次
-                time.sleep(1)
-                order_status = order_market.getOrderStatus(order_id, coin_code)
-                if order_status == 'closed':
-                    waitseconds = max_wait_seconds+5  # 退出
-                    trans_succ_flag = True
-                else:  # 没有成效刚继续等待检查
-                    waitseconds = waitseconds + 1
-            # 超过时间后则取消该订单，任务取消
-            if waitseconds == max_wait_seconds:
-                #先测试 只有买不成交时才取消，卖出不进行取消，直到等到交易结束
-                if trans_type=='buy':
-                    cancelorder = order_market.cancelOrder(order_id, coin_code)
-                    # 如果取消失败需要处理，这时订单可能已经成交，导致显示的提示不正确
-                    if cancelorder=='success':
-                        print('买入超时取消!')
-                        trans_succ_flag=False
-                    # order finished when cancel
-                    elif cancelorder=='trans_done':
+        try:
+            trans_order=order_market.submitOrder(coin_code+'_cny',trans_type,trans_price,trans_units)
+            order_id=trans_order.order_id
+            #让服务器运行一会
+            time.sleep(0.1)
+            order_status=order_market.getOrderStatus(order_id,coin_code)
+            if order_status=='closed':
+                trans_succ_flag=True
+            else:
+                #todo循环处理，直到成功
+                waitseconds = 0
+                while (waitseconds < max_wait_seconds):
+                    #每1秒检查 一次
+                    time.sleep(1)
+                    order_status = order_market.getOrderStatus(order_id, coin_code)
+                    if order_status == 'closed':
+                        waitseconds = max_wait_seconds+5  # 退出
                         trans_succ_flag = True
+                    else:  # 没有成效刚继续等待检查
+                        waitseconds = waitseconds + 1
+                # 超过时间后则取消该订单，任务取消
+                if waitseconds == max_wait_seconds:
+                    #先测试 只有买不成交时才取消，卖出不进行取消，直到等到交易结束
+                    if trans_type=='buy':
+                        cancelorder = order_market.cancelOrder(order_id, coin_code)
+                        # 如果取消失败需要处理，这时订单可能已经成交，导致显示的提示不正确
+                        if cancelorder=='success':
+                            print('买入超时取消!')
+                            trans_succ_flag=False
+                        # order finished when cancel
+                        elif cancelorder=='trans_done':
+                            trans_succ_flag = True
+                        else:
+                            #可能出现在取消的时候订单成交的情况，只能取消成功的订单才算取消，默认是成交了
+                            trans_succ_flag = True
                     else:
-                        #可能出现在取消的时候订单成交的情况，只能取消成功的订单才算取消，默认是成交了
-                        trans_succ_flag = True
-                else:
-                    print('卖出超时，等待降价卖出......')
-                    # 卖出超时取消卖单
-                    resell_times=self.__twin_trans_sell_overtime_process(order_market,order_id,coin_code,trans_price,trans_units)
-                    if resell_times>0:
-                        print('降价%d次后成功卖出'%resell_times)
-                        trans_succ_flag=True
-                    else:
-                        print('降价卖出时错误，请人工检查卖出情况!')
-                        trans_succ_flag = False
+                        print('卖出超时，等待降价卖出......')
+                        # 卖出超时取消卖单
+                        resell_times=self.__twin_trans_sell_overtime_process(order_market,order_id,coin_code,trans_price,trans_units)
+                        if resell_times>0:
+                            print('降价%d次后成功卖出'%resell_times)
+                            trans_succ_flag=True
+                        else:
+                            print('降价卖出时错误，请人工检查卖出情况!')
+                            trans_succ_flag = False
+        except Exception as e:
+            print('%s:操作异常@:%s'%(trans_type,order_market))
+            print(str(e))
+
         return trans_succ_flag
 
     def test_trans_apply(self):
@@ -289,6 +297,9 @@ class TradeRobot(object):
             self.__trans_log()
             if sell_success:
                 trans_success=True
+            else:
+                # 买入成功但是卖出失败的次数不能超过一定的数量，防止由于程序错误过度买入，消耗完全部的CNY，2017.7.7号发生过一次
+                self.__sell_fail_times=self.__sell_fail_times+1
             # 检查帐户的仓位并调整相应的盈利比例,使得下一次交易按新的盈利比例处理
             self.__update_profit_rate((self.__order_vs))
         return trans_success
@@ -424,7 +435,8 @@ class TradeRobot(object):
                         # 检查帐户的仓位并调整相应的盈利比例
                         #print('%s: is checking account balance'%self.__get_curr_time())
                         account_balance=self.__check_account()
-                        if account_balance:
+                        # 如果过多的买入成功，卖出失败则停止进行自动交易,防止异常的一直出现买入的情况
+                        if account_balance and self.__sell_fail_times<self.__max_sell_fail_times:
                             #检查帐户的仓位并调整相应的盈利比例
                             #print('%s: is doing transaction.'%self.__get_curr_time())
                             trans_status=self.__trans_apply()

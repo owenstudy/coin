@@ -19,7 +19,8 @@ class PriceManage(object):
         self.coin_price=None
     '''返回价格明细，返回价格的对象实例'''
     def get_coin_price(self):
-        #time.sleep(1)
+        # 防止调用过快，返回错误
+        time.sleep(0.2)
         if self.__market=='bter':
             self.__set_bter_price()
             return self.coin_price

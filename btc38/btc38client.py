@@ -75,7 +75,8 @@ class Client():
                 return all_balance
         except Exception as e:
             print(str(e))
-            print('检查IP地址是不是加入了白名单！')
+            if str(e).find('line 1 column 8 (char 7)')>0:
+                print('检查IP地址是不是加入了白名单！')
         return coinbal
     #取消定单,btc38传送时需要 放一个coin code否则为报错
     def cancelOrder(self,orderid,coin_code=None):
