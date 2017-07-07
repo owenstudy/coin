@@ -329,7 +329,7 @@ class TradeRobot(object):
             trans_units=self.__std_amount/self.__price_vs.sell_cny
 
             #是不是满足交易条件
-            if bal_base>self.__std_amount and bal_vs>trans_units:
+            if bal_base>self.__std_amount*2 and bal_vs>trans_units*2:
                 return True
             else:
                 return False
@@ -543,7 +543,7 @@ class TradeRobot(object):
 if __name__=='__main__':
     #price_base = pricemanage.PriceManage('bter', 'doge').get_coin_price()
     robot=TradeRobot(0.009)
-    #robot.start()
+    robot.start()
     #robot.test_twin_trans_sell_overtime()
     #twin trans test
     #robot.test_twin_trans()
