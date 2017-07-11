@@ -58,9 +58,10 @@ class TradeRobot(object):
                 currtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
                 if processnum % 10 == 0:
                     print('%s: 已经处理了:%d次' % (currtime,processnum))
-                if processnum%100==0:
+                if processnum%10==0:
                     # 打印帐户当前余额
                     summary=dailysummary.DailySummary(self.__market_list)
+                    summary.output_summary('daily_summary.log')
 
                 processnum = processnum + 1
         pass
@@ -542,8 +543,8 @@ class TradeRobot(object):
 #test
 if __name__=='__main__':
     #price_base = pricemanage.PriceManage('bter', 'doge').get_coin_price()
-    robot=TradeRobot(0.009)
-    #robot.start()
+    robot=TradeRobot(0.012)
+    robot.start()
     #robot.test_twin_trans_sell_overtime()
     #twin trans test
     #robot.test_twin_trans()

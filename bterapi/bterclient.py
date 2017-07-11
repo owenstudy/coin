@@ -19,10 +19,10 @@ class Client:
     #pair e.g. doge_cny
     def getMyBalance(self,coin=None):
         try:
+            coinbal = None
             bal = self.tradeapi.getFunds()
             #coin, curr = pair.split("_")
             #print(bal[coin]['available'])
-            coinbal = None
             if coin:
                 try:
                     coinbal=bal[coin]['available']
