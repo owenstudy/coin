@@ -543,7 +543,7 @@ class TradeRobot(object):
 if __name__=='__main__':
     #price_base = pricemanage.PriceManage('bter', 'doge').get_coin_price()
     robot=TradeRobot(0.009)
-    robot.start()
+    #robot.start()
     #robot.test_twin_trans_sell_overtime()
     #twin trans test
     #robot.test_twin_trans()

@@ -37,7 +37,7 @@ class ExchAccountBal(object):
         #自动均衡的POOL的大小，是每次交易的整数倍
         self.__money_pool_size=100
         #自动进行资金池均衡的coin
-        self.__money_pool_coin=['doge','ltc']
+        self.__money_pool_coin=['doge']
         #均衡时两个市场价格的差异比例，如0.005
         self.__money_pool_price_rate_diff=0.003
         pass
