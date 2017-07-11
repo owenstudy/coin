@@ -58,7 +58,7 @@ class TradeRobot(object):
                 currtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
                 if processnum % 10 == 0:
                     print('%s: 已经处理了:%d次' % (currtime,processnum))
-                if processnum%10==0:
+                if processnum%100==0:
                     # 打印帐户当前余额
                     summary=dailysummary.DailySummary(self.__market_list)
                     summary.output_summary('daily_summary.log')
