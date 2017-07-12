@@ -60,9 +60,11 @@ class TradeRobot(object):
                     print('%s: 已经处理了:%d次' % (currtime,processnum))
                 if processnum%100==0:
                     # 打印帐户当前余额
-                    summary=dailysummary.DailySummary(self.__market_list)
-                    summary.output_summary('daily_summary.log')
-
+                    try:
+                        summary=dailysummary.DailySummary(self.__market_list)
+                        summary.output_summary('daily_summary.log')
+                    except:
+                        pass
                 processnum = processnum + 1
         pass
 
