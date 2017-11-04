@@ -3,13 +3,14 @@ import btc38.client
 import urlaccess
 import json,time,datetime
 import openorderlist
+from btc38.config import apiconfig
 import pricemanage
 
 '''统一接口'''
 #test api transaction
-key='47ae44f72c3a93dd33e6177142189071'
-secret='f68d9ca86eb175d93d4f992642197b1c7ba555b0e9bb747d989f91ccc3cdeed1'
-accountid=43237
+key=apiconfig.get("key")
+secret=apiconfig.get("secret")
+accountid=apiconfig.get("accountid")
 
 
 class Client():
@@ -82,7 +83,7 @@ class Client():
     def cancelOrder(self,orderid,coin_code=None):
         try:
             order_status=None
-            cancel=self.btc38clt.cancelOrder(coin_code,'cny',orderid)
+            cancel=self.btc38clt.cancelOrder(coin_code,'btc',orderid)
             cancelstatus=cancel[0].decode('utf8')
             if cancelstatus=='succ':
                 order_status='success'
@@ -163,7 +164,7 @@ class Client():
         finally:
             return order_status
     '''得到市场的深度'''
-    def getMarketDepth(self,coin_code,mk_type='cny'):
+    def getMarketDepth(self,coin_code,mk_type='btc'):
         try:
             data = self.btc38clt.getDepth(mk_type,coin_code)
             # 买单列表
@@ -208,16 +209,15 @@ if __name__=='__main__':
     print(cancel)
 """
     #测试市场尝试
-    market_depht=btc38clt.getMarketDepth('doge','cny')
+    market_depht=btc38clt.getMarketDepth('doge','btc')
     for buy in market_depht.buy:
         print(buy)
 
-    order = btc38clt.submitOrder('doge_cny', 'sell', 0.01616, 100)
+    order = btc38clt.submitOrder('doge_btc', 'sell', 0.01616, 100)
     order_id=order.order_id
-    order2=btc38clt.submitOrder('doge_cny', 'buy', 0.01616, 100)
-    order_status=btc38clt.getOrderStatus(order2.order_id,'doge')
+    # order2=btc38clt.submitOrder('doge_btc', 'buy', 0.01616, 100)
+    # order_status=btc38clt.getOrderStatus(order2.order_id,'doge')
     cancel_order=btc38clt.cancelOrder(order.order_id,'doge')
-
 
     bal=btc38clt.getMyBalance('doge')
     print(bal)

@@ -75,7 +75,7 @@ class DailySummary(object):
         file.close()
         file_detail.close()
 if __name__ == '__main__':
-    market_list=['bter','btc38']
+    market_list=['btc38']
     daily_summary=DailySummary(market_list)
     bal=daily_summary.output_summary('daily_summary.log',)
     pass

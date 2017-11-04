@@ -52,13 +52,17 @@ if __name__=='__main__':
         pass
     """
 
+    btc38order=OrderManage('btc38')
+    bal=btc38order.getMyBalance('eac')
 
-    bterorder=OrderManage('bter')
-    order=bterorder.submitOrder('doge_cny','sell',0.01,100)
-    cancelorder=bterorder.cancelOrder(order.order_id,'doge')
+    print(bal)
 
-    orderstatus=bterorder.getOrderStatus(order.order_id,'doge')
-    print(orderstatus)
+    # bterorder=OrderManage('btc38')
+    # order=bterorder.submitOrder('doge_cny','sell',0.01,100)
+    # cancelorder=bterorder.cancelOrder(order.order_id,'doge')
+    #
+    # orderstatus=bterorder.getOrderStatus(order.order_id,'doge')
+    # print(orderstatus)
     """
     bal=bterorder.getMyBalance('doge')
     print('BTER:%f'%bal)

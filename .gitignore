@@ -1,0 +1,8 @@
+# Except this file  
+*.log
+.idea/
+__pycache__/
+./btc38/__pycache__/
+bterapi/__pycache__/
+sqlldr/
+
